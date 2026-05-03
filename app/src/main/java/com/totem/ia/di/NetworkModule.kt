@@ -29,8 +29,10 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
+        // Base URL is a required placeholder only. Actual URL is set dynamically
+        // via @Url annotation in TotemApiService using SettingsManager.
         return Retrofit.Builder()
-            .baseUrl("http://163.176.220.249:8000") // Apontando para o IP da sua VPS (porta 8000 como exemplo)
+            .baseUrl("http://placeholder.invalid/")
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
