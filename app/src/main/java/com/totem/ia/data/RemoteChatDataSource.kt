@@ -1,0 +1,18 @@
+package com.totem.ia.data
+
+import javax.inject.Inject
+
+class RemoteChatDataSource @Inject constructor(
+    private val apiService: TotemApiService
+) {
+    suspend fun sendMessage(sessionId: String, text: String): String {
+        return try {
+            val request = ChatRequest(sessionId = sessionId, userText = text)
+            val response = apiService.sendMessage(request)
+            response.replyText
+        } catch (e: Exception) {
+            e.printStackTrace()
+            "Desculpe, ocorreu um erro ao conectar com o Totem."
+        }
+    }
+}
