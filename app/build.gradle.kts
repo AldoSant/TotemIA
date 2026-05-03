@@ -54,6 +54,10 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
     
+    // Navigation & DataStore
+    implementation("androidx.navigation:navigation-compose:2.7.5")
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
+
     // Hilt
     implementation("com.google.dagger:hilt-android:2.48.1")
     kapt("com.google.dagger:hilt-android-compiler:2.48.1")

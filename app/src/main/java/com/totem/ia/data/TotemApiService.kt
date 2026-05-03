@@ -16,7 +16,9 @@ data class ChatResponse(
     @SerializedName("reply_text") val replyText: String
 )
 
+import retrofit2.http.Url
+
 interface TotemApiService {
-    @POST("/chat")
-    suspend fun sendMessage(@Body request: ChatRequest): ChatResponse
+    @POST
+    suspend fun sendMessage(@Url url: String, @Body request: ChatRequest): ChatResponse
 }
