@@ -17,12 +17,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TotemScreen(
-    viewModel: TotemViewModel = viewModel()
+    viewModel: TotemViewModel = hiltViewModel()
 ) {
     val messages by viewModel.messages.collectAsState()
     val totemState by viewModel.totemState.collectAsState()
@@ -32,7 +32,7 @@ fun TotemScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Totem IA") },
-                colors = TopAppBarDefaults.smallTopAppBarColors(
+                colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 ),
