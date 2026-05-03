@@ -3,6 +3,7 @@ package com.totem.ia.data
 import com.google.gson.annotations.SerializedName
 import retrofit2.http.Body
 import retrofit2.http.POST
+import retrofit2.http.Url
 
 data class ChatRequest(
     @SerializedName("session_id") val sessionId: String,
@@ -15,8 +16,6 @@ data class ChatResponse(
     @SerializedName("session_id") val sessionId: String,
     @SerializedName("reply_text") val replyText: String
 )
-
-import retrofit2.http.Url
 
 interface TotemApiService {
     @POST
