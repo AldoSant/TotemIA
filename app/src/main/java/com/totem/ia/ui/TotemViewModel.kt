@@ -23,16 +23,10 @@ data class Message(val text: String, val isUser: Boolean)
 class TotemViewModel @Inject constructor(
     private val askTotemUseCase: AskTotemUseCase,
     private val ttsManager: TextToSpeechManager,
-    private val speechInputManager: SpeechInputManager
+    private val speechManager: SpeechInputManager
 ) : ViewModel() {
 
-    val isListening: StateFlow<Boolean> = speechInputManager.isListening
-
-    init {
-        speechInputManager.onResult = { text ->
-            sendMessage(text)
-        }
-    }
+    val isListening: StateFlow<Boolean> = speechManager.isListening
 
     private val sessionId = UUID.randomUUID().toString()
 
@@ -41,6 +35,12 @@ class TotemViewModel @Inject constructor(
 
     private val _totemState = MutableStateFlow(TotemState.READY)
     val totemState: StateFlow<TotemState> = _totemState.asStateFlow()
+
+    init {
+        speechManager.onResult = { text: String ->
+            sendMessage(text)
+        }
+    }
 
     fun sendMessage(text: String) {
         if (text.isBlank()) return
@@ -52,15 +52,12 @@ class TotemViewModel @Inject constructor(
             val response = askTotemUseCase(sessionId, text)
             _messages.value = _messages.value + Message(response, isUser = false)
             _totemState.value = TotemState.SPEAKING
-            
             ttsManager.speak(response)
-            
-            // Assume it finishes speaking (could use UtteranceProgressListener for exact timing)
             _totemState.value = TotemState.READY
         }
     }
 
-    fun reolayLastResponse() {
+    fun replayLastResponse() {
         val lastBotMessage = _messages.value.lastOrNull { !it.isUser }
         lastBotMessage?.let {
             _totemState.value = TotemState.SPEAKING
@@ -69,6 +66,6 @@ class TotemViewModel @Inject constructor(
         }
     }
 
-    fun startListening() = speechInputManager.startListening()
-    fun stopListening() = speechInputManager.stopListening()
+    fun startListening() = speechManager.startListening()
+    fun stopListening() = speechManager.stopListening()
 }

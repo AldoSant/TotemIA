@@ -66,7 +66,7 @@ fun TotemScreen(
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(Icons.Default.Settings, contentDescription = "Configurações")
                     }
-                    IconButton(onClick = { viewModel.reolayLastResponse() }) {
+                    IconButton(onClick = { viewModel.replayLastResponse() }) {
                         Icon(Icons.Default.PlayArrow, contentDescription = "Ouvir novamente")
                     }
                 }
