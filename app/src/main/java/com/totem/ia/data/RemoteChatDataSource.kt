@@ -7,11 +7,18 @@ class RemoteChatDataSource @Inject constructor(
 ) {
     suspend fun sendMessage(baseUrl: String, sessionId: String, text: String, prompt: String): String {
         return try {
-            val fullUrl = if (baseUrl.endsWith("/")) "${baseUrl}chat" else "$baseUrl/chat"
-            val metadata = mapOf("device" to "android", "system_prompt" to prompt)
-            val request = ChatRequest(sessionId = sessionId, userText = text, metadata = metadata)
+            // Se for LM Studio/OpenAI, a rota padrão é /v1/chat/completions ou /chat/completions
+            val fullUrl = if (baseUrl.endsWith("/")) "${baseUrl}chat/completions" else "$baseUrl/chat/completions"
+            
+            val request = OpenAiRequest(
+                messages = listOf(
+                    OpenAiMessage(role = "system", content = prompt),
+                    OpenAiMessage(role = "user", content = text)
+                )
+            )
+            
             val response = apiService.sendMessage(fullUrl, request)
-            response.replyText
+            response.choices.firstOrNull()?.message?.content ?: "Desculpe, não consegui formular uma resposta."
         } catch (e: Exception) {
             e.printStackTrace()
             "Desculpe, ocorreu um erro ao conectar com o Totem."

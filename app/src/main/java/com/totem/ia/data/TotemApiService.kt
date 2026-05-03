@@ -5,19 +5,26 @@ import retrofit2.http.Body
 import retrofit2.http.POST
 import retrofit2.http.Url
 
-data class ChatRequest(
-    @SerializedName("session_id") val sessionId: String,
-    @SerializedName("user_text") val userText: String,
-    @SerializedName("language") val language: String = "pt-BR",
-    @SerializedName("metadata") val metadata: Map<String, String> = mapOf("device" to "android")
+data class OpenAiMessage(
+    @SerializedName("role") val role: String,
+    @SerializedName("content") val content: String
 )
 
-data class ChatResponse(
-    @SerializedName("session_id") val sessionId: String,
-    @SerializedName("reply_text") val replyText: String
+data class OpenAiRequest(
+    @SerializedName("model") val model: String = "local-model",
+    @SerializedName("messages") val messages: List<OpenAiMessage>,
+    @SerializedName("temperature") val temperature: Double = 0.7
 )
+
+data class OpenAiResponse(
+    @SerializedName("choices") val choices: List<Choice>
+) {
+    data class Choice(
+        @SerializedName("message") val message: OpenAiMessage
+    )
+}
 
 interface TotemApiService {
     @POST
-    suspend fun sendMessage(@Url url: String, @Body request: ChatRequest): ChatResponse
+    suspend fun sendMessage(@Url url: String, @Body request: OpenAiRequest): OpenAiResponse
 }
