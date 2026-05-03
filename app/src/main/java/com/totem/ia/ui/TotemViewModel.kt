@@ -21,8 +21,17 @@ data class Message(val text: String, val isUser: Boolean)
 @HiltViewModel
 class TotemViewModel @Inject constructor(
     private val askTotemUseCase: AskTotemUseCase,
-    private val ttsManager: TextToSpeechManager
+    private val ttsManager: TextToSpeechManager,
+    private val speechInputManager: SpeechInputManager
 ) : ViewModel() {
+
+    val isListening: StateFlow<Boolean> = speechInputManager.isListening
+
+    init {
+        speechInputManager.onResult = { text ->
+            sendMessage(text)
+        }
+    }
 
     private val sessionId = UUID.randomUUID().toString()
 
@@ -58,4 +67,7 @@ class TotemViewModel @Inject constructor(
             _totemState.value = TotemState.READY
         }
     }
+
+    fun startListening() = speechInputManager.startListening()
+    fun stopListening() = speechInputManager.stopListening()
 }

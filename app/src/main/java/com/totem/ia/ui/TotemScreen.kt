@@ -1,6 +1,11 @@
 package com.totem.ia.ui
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -14,9 +19,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -26,7 +34,21 @@ fun TotemScreen(
 ) {
     val messages by viewModel.messages.collectAsState()
     val totemState by viewModel.totemState.collectAsState()
+    val isListening by viewModel.isListening.collectAsState()
     var inputText by remember { mutableStateOf("") }
+
+    val context = LocalContext.current
+    var hasMicPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        hasMicPermission = isGranted
+    }
 
     Scaffold(
         topBar = {
@@ -85,8 +107,24 @@ fun TotemScreen(
                     .padding(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { /* TODO: Speech Input Phase 2 */ }) {
-                    Icon(Icons.Default.Mic, contentDescription = "Falar")
+                IconButton(
+                    onClick = { },
+                    modifier = Modifier.pointerInput(Unit) {
+                        detectTapGestures(
+                            onPress = {
+                                if (!hasMicPermission) {
+                                    permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                } else {
+                                    viewModel.startListening()
+                                    tryAwaitRelease()
+                                    viewModel.stopListening()
+                                }
+                            }
+                        )
+                    }
+                ) {
+                    val tint = if (isListening) Color.Red else LocalContentColor.current
+                    Icon(Icons.Default.Mic, contentDescription = "Falar", tint = tint)
                 }
                 
                 OutlinedTextField(

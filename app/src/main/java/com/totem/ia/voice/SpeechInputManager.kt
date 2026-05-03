@@ -63,10 +63,14 @@ class SpeechInputManager @Inject constructor(
         _spokenText.value = "Erro no reconhecimento de voz."
     }
 
+    var onResult: ((String) -> Unit)? = null
+
     override fun onResults(results: Bundle?) {
         val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
         if (!matches.isNullOrEmpty()) {
-            _spokenText.value = matches[0]
+            val text = matches[0]
+            _spokenText.value = text
+            onResult?.invoke(text)
         }
         _isListening.value = false
     }
