@@ -4,10 +4,27 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -18,8 +35,20 @@ import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,24 +59,20 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 
-// Dark theme colors
 private val BgDark = Color(0xFF0D0D1A)
 private val BgCard = Color(0xFF1A1A2E)
 private val AccentPurple = Color(0xFF7C4DFF)
 private val AccentCyan = Color(0xFF00E5FF)
-private val ReadyColor = Color(0xFF7C4DFF)
 private val ListeningColor = Color(0xFFFF1744)
 private val ThinkingColor = Color(0xFF00BCD4)
 private val SpeakingColor = Color(0xFF00E676)
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TotemScreen(
     onNavigateToSettings: () -> Unit,
@@ -70,16 +95,12 @@ fun TotemScreen(
     }
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { hasMicPermission = it }
+    ) { granted -> hasMicPermission = granted }
 
-    // Auto-scroll to latest message
     LaunchedEffect(messages.size) {
-        if (messages.isNotEmpty()) {
-            listState.animateScrollToItem(messages.size - 1)
-        }
+        if (messages.isNotEmpty()) listState.animateScrollToItem(messages.size - 1)
     }
 
-    // Orb pulse animation
     val infiniteTransition = rememberInfiniteTransition(label = "orb")
     val orbScale by infiniteTransition.animateFloat(
         initialValue = 0.92f,
@@ -94,7 +115,7 @@ fun TotemScreen(
         label = "orbScale"
     )
     val orbAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.5f,
+        initialValue = 0.4f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
             animation = tween(
@@ -107,12 +128,11 @@ fun TotemScreen(
     )
 
     val stateColor = when (totemState) {
-        TotemState.READY -> ReadyColor
+        TotemState.READY -> AccentPurple
         TotemState.LISTENING -> ListeningColor
         TotemState.THINKING -> ThinkingColor
         TotemState.SPEAKING -> SpeakingColor
     }
-
     val stateLabel = when (totemState) {
         TotemState.READY -> "Aguardando..."
         TotemState.LISTENING -> "Ouvindo..."
@@ -124,14 +144,12 @@ fun TotemScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                Brush.verticalGradient(
-                    colors = listOf(BgDark, Color(0xFF0A0A1F), BgDark)
-                )
+                Brush.verticalGradient(listOf(BgDark, Color(0xFF0A0A1F), BgDark))
             )
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
 
-            // Top Bar
+            // Top bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -141,18 +159,13 @@ fun TotemScreen(
             ) {
                 Column {
                     Text(
-                        text = "TOTEM IA",
+                        "TOTEM IA",
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
                         letterSpacing = 3.sp
                     )
-                    Text(
-                        text = stateLabel,
-                        fontSize = 12.sp,
-                        color = stateColor,
-                        fontWeight = FontWeight.Medium
-                    )
+                    Text(stateLabel, fontSize = 12.sp, color = stateColor, fontWeight = FontWeight.Medium)
                 }
                 Row {
                     IconButton(onClick = { viewModel.replayLastResponse() }) {
@@ -166,47 +179,30 @@ fun TotemScreen(
                 }
             }
 
-            // Orb + Status
+            // Animated orb
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(180.dp),
+                modifier = Modifier.fillMaxWidth().height(180.dp),
                 contentAlignment = Alignment.Center
             ) {
-                // Outer glow ring
                 Box(
                     modifier = Modifier
                         .size(160.dp)
-                        .graphicsLayer {
-                            scaleX = orbScale
-                            scaleY = orbScale
-                            alpha = orbAlpha * 0.3f
-                        }
+                        .graphicsLayer { scaleX = orbScale; scaleY = orbScale; alpha = orbAlpha * 0.25f }
                         .clip(CircleShape)
                         .background(stateColor)
                 )
-                // Middle ring
                 Box(
                     modifier = Modifier
-                        .size(120.dp)
-                        .graphicsLayer {
-                            scaleX = orbScale * 0.95f
-                            scaleY = orbScale * 0.95f
-                            alpha = orbAlpha * 0.5f
-                        }
+                        .size(110.dp)
+                        .graphicsLayer { scaleX = orbScale; scaleY = orbScale; alpha = orbAlpha * 0.5f }
                         .clip(CircleShape)
                         .background(stateColor)
                 )
-                // Inner core
                 Box(
                     modifier = Modifier
-                        .size(80.dp)
+                        .size(72.dp)
                         .clip(CircleShape)
-                        .background(
-                            Brush.radialGradient(
-                                colors = listOf(Color.White.copy(alpha = 0.9f), stateColor)
-                            )
-                        ),
+                        .background(Brush.radialGradient(listOf(Color.White.copy(0.85f), stateColor))),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -216,8 +212,7 @@ fun TotemScreen(
                             TotemState.THINKING -> "◌"
                             TotemState.SPEAKING -> "◎"
                         },
-                        fontSize = 28.sp,
-                        color = Color.White
+                        fontSize = 26.sp, color = Color.White
                     )
                 }
             }
@@ -225,16 +220,11 @@ fun TotemScreen(
             // Messages
             LazyColumn(
                 state = listState,
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp),
+                modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 12.dp),
                 contentPadding = PaddingValues(vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                items(messages) { message ->
-                    ChatBubble(message)
-                }
+                items(messages) { message -> ChatBubble(message) }
             }
 
             // Input bar
@@ -249,7 +239,7 @@ fun TotemScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Mic button — push-to-talk
+                    // Mic — push to talk
                     Box(
                         modifier = Modifier
                             .size(52.dp)
@@ -279,18 +269,12 @@ fun TotemScreen(
                         )
                     }
 
-                    // Text field
+                    // Text input
                     OutlinedTextField(
                         value = inputText,
                         onValueChange = { inputText = it },
                         modifier = Modifier.weight(1f),
-                        placeholder = {
-                            Text(
-                                "Ou digite aqui...",
-                                color = Color.White.copy(alpha = 0.4f),
-                                fontSize = 14.sp
-                            )
-                        },
+                        placeholder = { Text("Ou digite aqui...", color = Color.White.copy(0.4f), fontSize = 14.sp) },
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White,
@@ -303,35 +287,31 @@ fun TotemScreen(
                     )
 
                     // Send button
+                    val canSend = inputText.isNotBlank() && totemState != TotemState.THINKING
                     Box(
                         modifier = Modifier
                             .size(52.dp)
                             .clip(CircleShape)
-                            .background(
-                                if (inputText.isNotBlank() && totemState != TotemState.THINKING)
-                                    AccentCyan else Color.White.copy(alpha = 0.1f)
-                            )
+                            .background(if (canSend) AccentCyan else Color.White.copy(0.1f))
                             .then(
-                                if (inputText.isNotBlank() && totemState != TotemState.THINKING)
-                                    Modifier.pointerInput(Unit) {
-                                        detectTapGestures(onTap = {
-                                            viewModel.sendMessage(inputText)
-                                            inputText = ""
-                                            coroutineScope.launch {
-                                                if (messages.isNotEmpty())
-                                                    listState.animateScrollToItem(messages.size - 1)
-                                            }
-                                        })
-                                    }
-                                else Modifier
+                                if (canSend) Modifier.pointerInput(inputText) {
+                                    detectTapGestures(onTap = {
+                                        val text = inputText
+                                        inputText = ""
+                                        viewModel.sendMessage(text)
+                                        coroutineScope.launch {
+                                            if (messages.isNotEmpty())
+                                                listState.animateScrollToItem(messages.size - 1)
+                                        }
+                                    })
+                                } else Modifier
                             ),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             Icons.Default.Send,
                             contentDescription = "Enviar",
-                            tint = if (inputText.isNotBlank() && totemState != TotemState.THINKING)
-                                Color.Black else Color.White.copy(alpha = 0.3f),
+                            tint = if (canSend) Color.Black else Color.White.copy(0.3f),
                             modifier = Modifier.size(22.dp)
                         )
                     }
@@ -344,11 +324,6 @@ fun TotemScreen(
 @Composable
 fun ChatBubble(message: Message) {
     val isUser = message.isUser
-    val bubbleColor = if (isUser)
-        Brush.horizontalGradient(listOf(AccentPurple, Color(0xFF9C27B0)))
-    else
-        Brush.horizontalGradient(listOf(BgCard, Color(0xFF1E1E35)))
-
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
@@ -366,6 +341,11 @@ fun ChatBubble(message: Message) {
             }
         }
 
+        val bubbleBg = if (isUser)
+            Brush.horizontalGradient(listOf(AccentPurple, Color(0xFF9C27B0)))
+        else
+            Brush.horizontalGradient(listOf(BgCard, Color(0xFF1E1E35)))
+
         Box(
             modifier = Modifier
                 .widthIn(max = 280.dp)
@@ -377,15 +357,10 @@ fun ChatBubble(message: Message) {
                         bottomEnd = 20.dp
                     )
                 )
-                .background(bubbleColor)
+                .background(bubbleBg)
                 .padding(horizontal = 14.dp, vertical = 10.dp)
         ) {
-            Text(
-                text = message.text,
-                color = Color.White,
-                fontSize = 15.sp,
-                lineHeight = 22.sp
-            )
+            Text(message.text, color = Color.White, fontSize = 15.sp, lineHeight = 22.sp)
         }
 
         if (isUser) {
