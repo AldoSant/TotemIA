@@ -13,11 +13,17 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
 
-enum class TotemState {
-    READY, LISTENING, THINKING, SPEAKING
-}
+// ── UI Models ─────────────────────────────────────────────────────────────────
 
-data class Message(val text: String, val isUser: Boolean)
+enum class TotemState { READY, LISTENING, THINKING, SPEAKING }
+
+data class Message(
+    val text: String,
+    val isUser: Boolean,
+    val isError: Boolean = false
+)
+
+// ── ViewModel ─────────────────────────────────────────────────────────────────
 
 @HiltViewModel
 class TotemViewModel @Inject constructor(
@@ -26,46 +32,66 @@ class TotemViewModel @Inject constructor(
     private val speechManager: SpeechInputManager
 ) : ViewModel() {
 
-    val isListening: StateFlow<Boolean> = speechManager.isListening
-
     private val sessionId = UUID.randomUUID().toString()
-
-    private val _messages = MutableStateFlow<List<Message>>(emptyList())
-    val messages: StateFlow<List<Message>> = _messages.asStateFlow()
 
     private val _totemState = MutableStateFlow(TotemState.READY)
     val totemState: StateFlow<TotemState> = _totemState.asStateFlow()
 
+    private val _messages = MutableStateFlow<List<Message>>(emptyList())
+    val messages: StateFlow<List<Message>> = _messages.asStateFlow()
+
+    val isListening: StateFlow<Boolean> = speechManager.isListening
+
     init {
-        speechManager.onResult = { text: String ->
-            sendMessage(text)
-        }
+        // When speech recognition returns a result, send it automatically
+        speechManager.onResult = { text: String -> sendMessage(text) }
     }
 
     fun sendMessage(text: String) {
-        if (text.isBlank()) return
+        if (text.isBlank() || _totemState.value == TotemState.THINKING) return
 
-        _messages.value = _messages.value + Message(text, isUser = true)
+        appendMessage(Message(text = text, isUser = true))
         _totemState.value = TotemState.THINKING
 
         viewModelScope.launch {
-            val response = askTotemUseCase(sessionId, text)
-            _messages.value = _messages.value + Message(response, isUser = false)
-            _totemState.value = TotemState.SPEAKING
-            ttsManager.speak(response)
-            _totemState.value = TotemState.READY
+            askTotemUseCase(sessionId, text)
+                .onSuccess { reply ->
+                    appendMessage(Message(text = reply, isUser = false))
+                    _totemState.value = TotemState.SPEAKING
+                    ttsManager.speak(reply)
+                    _totemState.value = TotemState.READY
+                }
+                .onFailure {
+                    val errorMsg = "Não consegui conectar ao servidor. Verifique a URL nas configurações."
+                    appendMessage(Message(text = errorMsg, isUser = false, isError = true))
+                    _totemState.value = TotemState.READY
+                }
         }
     }
 
     fun replayLastResponse() {
-        val lastBotMessage = _messages.value.lastOrNull { !it.isUser }
-        lastBotMessage?.let {
+        _messages.value.lastOrNull { !it.isUser && !it.isError }?.let { lastBotMsg ->
             _totemState.value = TotemState.SPEAKING
-            ttsManager.speak(it.text)
+            ttsManager.speak(lastBotMsg.text)
             _totemState.value = TotemState.READY
         }
     }
 
-    fun startListening() = speechManager.startListening()
-    fun stopListening() = speechManager.stopListening()
+    fun startListening() {
+        _totemState.value = TotemState.LISTENING
+        speechManager.startListening()
+    }
+
+    fun stopListening() {
+        speechManager.stopListening()
+        // State will return to READY or THINKING once result comes back
+    }
+
+    fun clearHistory() {
+        _messages.value = emptyList()
+    }
+
+    private fun appendMessage(message: Message) {
+        _messages.value = _messages.value + message
+    }
 }
