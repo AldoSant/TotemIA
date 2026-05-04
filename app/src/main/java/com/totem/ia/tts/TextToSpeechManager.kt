@@ -4,6 +4,7 @@ import android.content.Context
 import android.media.AudioAttributes
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
+import android.speech.tts.Voice
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.Locale
 import javax.inject.Inject
@@ -16,6 +17,7 @@ class TextToSpeechManager @Inject constructor(
 
     private var tts: TextToSpeech? = null
     private var isInitialized = false
+    private var pendingVoiceName: String? = null
 
     init {
         tts = TextToSpeech(context, this)
@@ -23,18 +25,39 @@ class TextToSpeechManager @Inject constructor(
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
-            val result = tts?.setLanguage(Locale("pt", "BR"))
-            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                // Language not supported, handle if necessary
-            } else {
-                isInitialized = true
-                val audioAttributes = AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_MEDIA)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-                    .build()
-                tts?.setAudioAttributes(audioAttributes)
-            }
+            tts?.setLanguage(Locale("pt", "BR"))
+            isInitialized = true
+
+            val audioAttributes = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_MEDIA)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                .build()
+            tts?.setAudioAttributes(audioAttributes)
+
+            // Apply pending voice if one was set before init
+            pendingVoiceName?.let { applyVoiceByName(it) }
         }
+    }
+
+    fun getAvailableVoices(): List<Voice> {
+        return tts?.voices
+            ?.filter { it.locale.language == "pt" && !it.isNetworkConnectionRequired }
+            ?.sortedBy { it.name }
+            ?: emptyList()
+    }
+
+    fun setVoiceByName(name: String) {
+        if (isInitialized) {
+            applyVoiceByName(name)
+        } else {
+            pendingVoiceName = name
+        }
+    }
+
+    private fun applyVoiceByName(name: String) {
+        if (name.isBlank()) return
+        val voice = tts?.voices?.find { it.name == name }
+        voice?.let { tts?.voice = it }
     }
 
     fun speak(text: String) {

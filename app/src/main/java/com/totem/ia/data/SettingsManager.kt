@@ -21,9 +21,11 @@ class SettingsManager @Inject constructor(
     companion object {
         val BASE_URL_KEY = stringPreferencesKey("base_url")
         val SYSTEM_PROMPT_KEY = stringPreferencesKey("system_prompt")
+        val VOICE_NAME_KEY = stringPreferencesKey("voice_name")
         
         const val DEFAULT_BASE_URL = "http://163.176.220.249:8000"
         const val DEFAULT_SYSTEM_PROMPT = "Você é um totem IA amigável e sábio."
+        const val DEFAULT_VOICE_NAME = ""
     }
 
     val baseUrlFlow: Flow<String> = context.dataStore.data.map { preferences ->
@@ -32,6 +34,10 @@ class SettingsManager @Inject constructor(
 
     val systemPromptFlow: Flow<String> = context.dataStore.data.map { preferences ->
         preferences[SYSTEM_PROMPT_KEY] ?: DEFAULT_SYSTEM_PROMPT
+    }
+
+    val voiceNameFlow: Flow<String> = context.dataStore.data.map { preferences ->
+        preferences[VOICE_NAME_KEY] ?: DEFAULT_VOICE_NAME
     }
 
     suspend fun saveBaseUrl(url: String) {
@@ -43,6 +49,12 @@ class SettingsManager @Inject constructor(
     suspend fun saveSystemPrompt(prompt: String) {
         context.dataStore.edit { preferences ->
             preferences[SYSTEM_PROMPT_KEY] = prompt
+        }
+    }
+
+    suspend fun saveVoiceName(name: String) {
+        context.dataStore.edit { preferences ->
+            preferences[VOICE_NAME_KEY] = name
         }
     }
 }
