@@ -42,6 +42,7 @@ class TotemViewModel @Inject constructor(
 
     val isListening: StateFlow<Boolean> = speechManager.isListening
     val partialText: StateFlow<String> = speechManager.spokenText
+    val rmsLevel: StateFlow<Float> = speechManager.rmsLevel
 
     init {
         // Quando o reconhecimento termina, envia a mensagem
@@ -73,8 +74,8 @@ class TotemViewModel @Inject constructor(
                     ttsManager.speak(reply)
                     // O estado volta para READY via listener onSpeechFinished
                 }
-                .onFailure {
-                    val errorMsg = "Erro na conexão. Verifique a URL nas configurações."
+                .onFailure { error ->
+                    val errorMsg = "CONECTION ERROR: ${error.localizedMessage ?: "Check server status and URL"}"
                     appendMessage(Message(text = errorMsg, isUser = false, isError = true))
                     _totemState.value = TotemState.READY
                 }

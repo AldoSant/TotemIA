@@ -1,32 +1,31 @@
 package com.totem.ia.ui
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.Psychology
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+
+private val BgDeep = Color(0xFF030308)
+private val PurpleNeon = Color(0xFF7C4DFF)
+private val CyanNeon = Color(0xFF00E5FF)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,69 +37,108 @@ fun SettingsScreen(
     val systemPrompt by viewModel.systemPrompt.collectAsState()
 
     Scaffold(
+        containerColor = BgDeep,
         topBar = {
-            TopAppBar(
-                title = { Text("Configurações do Totem") },
+            CenterAlignedTopAppBar(
+                title = { 
+                    Text("SYSTEM CONFIG", 
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            letterSpacing = 3.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    ) 
+                },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Voltar")
+                        Icon(Icons.Default.ArrowBack, "Back", tint = Color.White)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color.Transparent,
+                    titleContentColor = Color.White
                 )
             )
         }
-    ) { paddingValues ->
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // ── Conexão ───────────────────────────────────────────────────────
-            Text(
-                text = "Conexão",
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.primary
-            )
-            OutlinedTextField(
-                value = baseUrl,
-                onValueChange = { viewModel.updateBaseUrl(it) },
-                label = { Text("URL do servidor (OpenClaw)") },
-                placeholder = { Text("http://192.168.1.7:18790") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
+            SettingsCard(
+                title = "Server Endpoint",
+                icon = Icons.Default.Dns,
+                color = CyanNeon
+            ) {
+                OutlinedTextField(
+                    value = baseUrl,
+                    onValueChange = { viewModel.updateBaseUrl(it) },
+                    placeholder = { Text("http://192.168.1.7:18790", color = Color.White.copy(0.3f)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        focusedBorderColor = CyanNeon,
+                        unfocusedBorderColor = Color.White.copy(0.1f)
+                    )
+                )
+            }
 
-            HorizontalDivider()
+            SettingsCard(
+                title = "AI Personality",
+                icon = Icons.Default.Psychology,
+                color = PurpleNeon
+            ) {
+                OutlinedTextField(
+                    value = systemPrompt,
+                    onValueChange = { viewModel.updateSystemPrompt(it) },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 5,
+                    shape = RoundedCornerShape(16.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        focusedBorderColor = PurpleNeon,
+                        unfocusedBorderColor = Color.White.copy(0.1f)
+                    )
+                )
+            }
 
-            // ── Personalidade ─────────────────────────────────────────────────
-            Text(
-                text = "Personalidade",
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.primary
-            )
-            OutlinedTextField(
-                value = systemPrompt,
-                onValueChange = { viewModel.updateSystemPrompt(it) },
-                label = { Text("Personalidade da IA (system prompt)") },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 4,
-                maxLines = 8
-            )
-
-            HorizontalDivider()
-
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = "As alterações são salvas automaticamente no dispositivo.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Spacer(Modifier.height(40.dp))
+            
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    "TOTEM OS v1.0.4 - SECURE BUILD",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(0.2f)
+                )
+            }
         }
+    }
+}
+
+@Composable
+private fun SettingsCard(
+    title: String,
+    icon: ImageVector,
+    color: Color,
+    content: @Composable () -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, null, tint = color, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(12.dp))
+            Text(title.uppercase(), color = Color.White, fontWeight = FontWeight.Bold, letterSpacing = 1.sp, fontSize = 12.sp)
+        }
+        content()
     }
 }

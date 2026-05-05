@@ -27,6 +27,9 @@ class SpeechInputManager @Inject constructor(
     private val _isListening = MutableStateFlow(false)
     val isListening: StateFlow<Boolean> = _isListening.asStateFlow()
 
+    private val _rmsLevel = MutableStateFlow(0f)
+    val rmsLevel: StateFlow<Float> = _rmsLevel.asStateFlow()
+
     var onResult: ((String) -> Unit)? = null
 
     init {
@@ -70,7 +73,9 @@ class SpeechInputManager @Inject constructor(
 
     override fun onReadyForSpeech(params: Bundle?) {}
     override fun onBeginningOfSpeech() {}
-    override fun onRmsChanged(rmsdB: Float) {}
+    override fun onRmsChanged(rmsdB: Float) {
+        _rmsLevel.value = rmsdB
+    }
     override fun onBufferReceived(buffer: ByteArray?) {}
     override fun onEndOfSpeech() {
         _isListening.value = false
