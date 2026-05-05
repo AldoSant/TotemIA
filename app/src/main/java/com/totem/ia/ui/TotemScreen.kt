@@ -40,21 +40,12 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 
-// ── Design Tokens ─────────────────────────────────────────────────────────────
-
 private val BgDeep      = Color(0xFF020205)
 private val BgGlass     = Color(0x770A0A15)
 private val PurpleNeon  = Color(0xFF8B5CF6)
 private val CyanNeon    = Color(0xFF06B6D4)
 private val RedNeon     = Color(0xFFEF4444)
 private val GreenNeon   = Color(0xFF10B981)
-
-private val TotemState.color get() = when (this) {
-    TotemState.READY     -> PurpleNeon
-    TotemState.LISTENING -> RedNeon
-    TotemState.THINKING  -> CyanNeon
-    TotemState.SPEAKING  -> GreenNeon
-}
 
 // ── World-Class Visualizer ────────────────────────────────────────────────────
 

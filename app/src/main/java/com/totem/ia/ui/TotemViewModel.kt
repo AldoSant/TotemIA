@@ -14,16 +14,6 @@ import com.totem.ia.voice.VoiceInteractionManager
 import java.util.UUID
 import javax.inject.Inject
 
-// ── UI Models ─────────────────────────────────────────────────────────────────
-
-enum class TotemState { READY, LISTENING, THINKING, SPEAKING }
-
-data class Message(
-    val text: String,
-    val isUser: Boolean,
-    val isError: Boolean = false
-)
-
 // ── ViewModel ─────────────────────────────────────────────────────────────────
 
 @HiltViewModel
