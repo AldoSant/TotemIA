@@ -41,14 +41,26 @@ class TotemViewModel @Inject constructor(
     val messages: StateFlow<List<Message>> = _messages.asStateFlow()
 
     val isListening: StateFlow<Boolean> = speechManager.isListening
+    val partialText: StateFlow<String> = speechManager.spokenText
 
     init {
-        // When speech recognition returns a result, send it automatically
-        speechManager.onResult = { text: String -> sendMessage(text) }
+        // Quando o reconhecimento termina, envia a mensagem
+        speechManager.onResult = { text: String -> 
+            if (text.isNotBlank()) sendMessage(text) 
+            else _totemState.value = TotemState.READY
+        }
+        
+        // Quando o TTS termina, volta ao estado pronto
+        ttsManager.onSpeechFinished = {
+            _totemState.value = TotemState.READY
+        }
     }
 
     fun sendMessage(text: String) {
-        if (text.isBlank() || _totemState.value == TotemState.THINKING) return
+        if (text.isBlank() || _totemState.value == TotemState.THINKING) {
+            _totemState.value = TotemState.READY
+            return
+        }
 
         appendMessage(Message(text = text, isUser = true))
         _totemState.value = TotemState.THINKING
@@ -59,10 +71,10 @@ class TotemViewModel @Inject constructor(
                     appendMessage(Message(text = reply, isUser = false))
                     _totemState.value = TotemState.SPEAKING
                     ttsManager.speak(reply)
-                    _totemState.value = TotemState.READY
+                    // O estado volta para READY via listener onSpeechFinished
                 }
                 .onFailure {
-                    val errorMsg = "Não consegui conectar ao servidor. Verifique a URL nas configurações."
+                    val errorMsg = "Erro na conexão. Verifique a URL nas configurações."
                     appendMessage(Message(text = errorMsg, isUser = false, isError = true))
                     _totemState.value = TotemState.READY
                 }
@@ -73,18 +85,25 @@ class TotemViewModel @Inject constructor(
         _messages.value.lastOrNull { !it.isUser && !it.isError }?.let { lastBotMsg ->
             _totemState.value = TotemState.SPEAKING
             ttsManager.speak(lastBotMsg.text)
-            _totemState.value = TotemState.READY
         }
     }
 
     fun startListening() {
+        if (_totemState.value == TotemState.THINKING) return
         _totemState.value = TotemState.LISTENING
         speechManager.startListening()
     }
 
     fun stopListening() {
         speechManager.stopListening()
-        // State will return to READY or THINKING once result comes back
+    }
+
+    fun toggleListening() {
+        if (isListening.value) {
+            stopListening()
+        } else {
+            startListening()
+        }
     }
 
     fun clearHistory() {
@@ -93,5 +112,11 @@ class TotemViewModel @Inject constructor(
 
     private fun appendMessage(message: Message) {
         _messages.value = _messages.value + message
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        speechManager.destroy()
+        ttsManager.shutdown()
     }
 }

@@ -27,19 +27,32 @@ class SpeechInputManager @Inject constructor(
     private val _isListening = MutableStateFlow(false)
     val isListening: StateFlow<Boolean> = _isListening.asStateFlow()
 
+    var onResult: ((String) -> Unit)? = null
+
     init {
-        if (SpeechRecognizer.isRecognitionAvailable(context)) {
+        // Inicialização básica, mas o recognizer real deve ser criado na Main Thread
+        // se houver crash, moveremos a criação para o startListening
+        setupIntent()
+    }
+
+    private fun setupIntent() {
+        speechIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "pt-BR")
+            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+        }
+    }
+
+    private fun ensureRecognizer() {
+        if (speechRecognizer == null && SpeechRecognizer.isRecognitionAvailable(context)) {
             speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context)
             speechRecognizer?.setRecognitionListener(this)
-            
-            speechIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE, "pt-BR")
-            }
         }
     }
 
     fun startListening() {
+        if (_isListening.value) return
+        ensureRecognizer()
         _isListening.value = true
         _spokenText.value = ""
         speechRecognizer?.startListening(speechIntent)
@@ -48,6 +61,11 @@ class SpeechInputManager @Inject constructor(
     fun stopListening() {
         _isListening.value = false
         speechRecognizer?.stopListening()
+    }
+
+    fun cancel() {
+        _isListening.value = false
+        speechRecognizer?.cancel()
     }
 
     override fun onReadyForSpeech(params: Bundle?) {}
@@ -60,10 +78,13 @@ class SpeechInputManager @Inject constructor(
 
     override fun onError(error: Int) {
         _isListening.value = false
-        _spokenText.value = "Erro no reconhecimento de voz."
+        val message = when (error) {
+            SpeechRecognizer.ERROR_NO_MATCH -> "Não entendi, tente novamente."
+            SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Silêncio detectado."
+            else -> "Erro no reconhecimento ($error)"
+        }
+        _spokenText.value = message
     }
-
-    var onResult: ((String) -> Unit)? = null
 
     override fun onResults(results: Bundle?) {
         val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
@@ -75,6 +96,17 @@ class SpeechInputManager @Inject constructor(
         _isListening.value = false
     }
 
-    override fun onPartialResults(partialResults: Bundle?) {}
+    override fun onPartialResults(partialResults: Bundle?) {
+        val matches = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+        if (!matches.isNullOrEmpty()) {
+            _spokenText.value = matches[0]
+        }
+    }
+
     override fun onEvent(eventType: Int, params: Bundle?) {}
+
+    fun destroy() {
+        speechRecognizer?.destroy()
+        speechRecognizer = null
+    }
 }

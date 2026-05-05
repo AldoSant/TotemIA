@@ -23,8 +23,8 @@ class SettingsManager @Inject constructor(
         val SYSTEM_PROMPT_KEY = stringPreferencesKey("system_prompt")
         val VOICE_NAME_KEY = stringPreferencesKey("voice_name")
         
-        const val DEFAULT_BASE_URL = "http://163.176.220.249:8000"
-        const val DEFAULT_SYSTEM_PROMPT = "Você é um totem IA amigável e sábio."
+        const val DEFAULT_BASE_URL = "http://192.168.1.7:18790"
+        const val DEFAULT_SYSTEM_PROMPT = "Você é um totem de inteligência artificial amigável. Responda de forma concisa e útil."
         const val DEFAULT_VOICE_NAME = ""
     }
 

@@ -105,6 +105,7 @@ fun TotemScreen(
     val messages    by viewModel.messages.collectAsState()
     val state       by viewModel.totemState.collectAsState()
     val isListening by viewModel.isListening.collectAsState()
+    val partialText by viewModel.partialText.collectAsState()
     var inputText   by remember { mutableStateOf("") }
 
     val listState      = rememberLazyListState()
@@ -243,29 +244,37 @@ fun TotemScreen(
                         .background(if (isListening) Red else Purple)
                         .pointerInput(hasMicPermission) {
                             detectTapGestures(
-                                onPress = {
+                                onTap = {
                                     if (!hasMicPermission) {
                                         permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                                     } else {
-                                        viewModel.startListening()
-                                        tryAwaitRelease()
-                                        viewModel.stopListening()
+                                        viewModel.toggleListening()
                                     }
                                 }
                             )
                         },
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.Mic, "Segurar para falar",
-                        tint = Color.White, modifier = Modifier.size(26.dp))
+                    Icon(
+                        imageVector = if (isListening) Icons.Default.Delete else Icons.Default.Mic,
+                        contentDescription = if (isListening) "Parar" else "Ouvir",
+                        tint = Color.White,
+                        modifier = Modifier.size(26.dp)
+                    )
                 }
 
                 // Text input
                 OutlinedTextField(
-                    value = inputText,
-                    onValueChange = { inputText = it },
+                    value = if (isListening) partialText else inputText,
+                    onValueChange = { if (!isListening) inputText = it },
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text("Ou digite aqui...", color = Color.White.copy(0.35f), fontSize = 14.sp) },
+                    placeholder = { 
+                        Text(
+                            if (isListening) "Ouvindo..." else "Ou digite aqui...", 
+                            color = Color.White.copy(0.35f), 
+                            fontSize = 14.sp
+                        ) 
+                    },
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor        = Color.White,
                         unfocusedTextColor      = Color.White,

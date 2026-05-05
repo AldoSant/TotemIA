@@ -19,7 +19,18 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme {
+            val darkColorScheme = androidx.compose.material3.darkColorScheme(
+                primary = androidx.compose.ui.graphics.Color(0xFF7C4DFF),
+                secondary = androidx.compose.ui.graphics.Color(0xFF00E5FF),
+                background = androidx.compose.ui.graphics.Color(0xFF0D0D1A),
+                surface = androidx.compose.ui.graphics.Color(0xFF1A1A2E),
+                onPrimary = androidx.compose.ui.graphics.Color.White,
+                onSecondary = androidx.compose.ui.graphics.Color.Black,
+                onBackground = androidx.compose.ui.graphics.Color.White,
+                onSurface = androidx.compose.ui.graphics.Color.White
+            )
+
+            MaterialTheme(colorScheme = darkColorScheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background

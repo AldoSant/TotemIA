@@ -18,6 +18,8 @@ class TextToSpeechManager @Inject constructor(
     private var tts: TextToSpeech? = null
     private var isInitialized = false
     private var pendingVoiceName: String? = null
+    
+    var onSpeechFinished: (() -> Unit)? = null
 
     init {
         tts = TextToSpeech(context, this)
@@ -26,6 +28,17 @@ class TextToSpeechManager @Inject constructor(
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
             tts?.setLanguage(Locale("pt", "BR"))
+            
+            tts?.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
+                override fun onStart(utteranceId: String?) {}
+                override fun onDone(utteranceId: String?) {
+                    onSpeechFinished?.invoke()
+                }
+                override fun onError(utteranceId: String?) {
+                    onSpeechFinished?.invoke()
+                }
+            })
+
             isInitialized = true
 
             val audioAttributes = AudioAttributes.Builder()
@@ -34,7 +47,6 @@ class TextToSpeechManager @Inject constructor(
                 .build()
             tts?.setAudioAttributes(audioAttributes)
 
-            // Apply pending voice if one was set before init
             pendingVoiceName?.let { applyVoiceByName(it) }
         }
     }
@@ -61,11 +73,16 @@ class TextToSpeechManager @Inject constructor(
     }
 
     fun speak(text: String) {
-        if (isInitialized) {
+        if (isInitialized && text.isNotBlank()) {
             val params = Bundle()
             params.putInt(TextToSpeech.Engine.KEY_PARAM_STREAM, android.media.AudioManager.STREAM_MUSIC)
-            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, params, "totem_utterance_id")
+            // Usar o mesmo ID para o listener capturar o onDone
+            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, params, "totem_utterance")
         }
+    }
+
+    fun stop() {
+        tts?.stop()
     }
 
     fun shutdown() {
