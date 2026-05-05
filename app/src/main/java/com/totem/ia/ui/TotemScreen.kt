@@ -129,10 +129,10 @@ fun NeuralOrb(state: TotemState, isListening: Boolean, rms: Float) {
         ) {
             Icon(
                 imageVector = when(state) {
-                    TotemState.READY -> Icons.Default.Adjust
+                    TotemState.READY -> Icons.Default.Info
                     TotemState.LISTENING -> Icons.Default.Mic
                     TotemState.THINKING -> Icons.Default.Refresh
-                    TotemState.SPEAKING -> Icons.Default.Face
+                    TotemState.SPEAKING -> Icons.Default.PlayArrow
                 },
                 contentDescription = null,
                 tint = Color.White,
