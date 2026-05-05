@@ -238,7 +238,7 @@ fun TotemScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = if (isListening) Icons.Default.Square else Icons.Default.Mic,
+                                imageVector = if (isListening) Icons.Default.Stop else Icons.Default.Mic,
                                 contentDescription = null,
                                 tint = Color.White,
                                 modifier = Modifier.size(28.dp)
