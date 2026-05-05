@@ -117,28 +117,27 @@ fun NeuralOrb(state: TotemState, isListening: Boolean, rms: Float) {
             }
         }
 
-        // Core AI Node
-        Surface(
-            modifier = Modifier.size(80.dp),
-            shape = CircleShape,
-            color = state.color,
-            shadowElevation = 32.dp,
-            tonalElevation = 16.dp,
-            border = BorderStroke(2.dp, Color.White.copy(0.3f))
+        // Central Core
+        Box(
+            modifier = Modifier
+                .size(100.dp)
+                .shadow(20.dp, CircleShape, ambientColor = state.color, spotColor = state.color)
+                .clip(CircleShape)
+                .background(Brush.linearGradient(listOf(state.color, state.color.copy(0.4f))))
+                .border(2.dp, Color.White.copy(0.2f), CircleShape),
+            contentAlignment = Alignment.Center
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = when(state) {
-                        TotemState.READY -> Icons.Default.Adjust
-                        TotemState.LISTENING -> Icons.Default.MicNone
-                        TotemState.THINKING -> Icons.Default.Sync
-                        TotemState.SPEAKING -> Icons.Default.RecordVoiceOver
-                    },
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(36.dp)
-                )
-            }
+            Icon(
+                imageVector = when(state) {
+                    TotemState.READY -> Icons.Default.Adjust
+                    TotemState.LISTENING -> Icons.Default.Mic
+                    TotemState.THINKING -> Icons.Default.Refresh
+                    TotemState.SPEAKING -> Icons.Default.Face
+                },
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(40.dp)
+            )
         }
     }
 }
