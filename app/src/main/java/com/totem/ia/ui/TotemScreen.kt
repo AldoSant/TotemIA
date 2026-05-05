@@ -42,13 +42,12 @@ import kotlin.math.sin
 
 // ── Design Tokens ─────────────────────────────────────────────────────────────
 
-private val BgDeep      = Color(0xFF030308)
-private val BgGlass     = Color(0xAA101025)
-private val PurpleNeon  = Color(0xFF7C4DFF)
-private val CyanNeon    = Color(0xFF00E5FF)
-private val RedNeon     = Color(0xFFFF1744)
-private val GreenNeon   = Color(0xFF00E676)
-private val Gold        = Color(0xFFFFD700)
+private val BgDeep      = Color(0xFF020205)
+private val BgGlass     = Color(0x770A0A15)
+private val PurpleNeon  = Color(0xFF8B5CF6)
+private val CyanNeon    = Color(0xFF06B6D4)
+private val RedNeon     = Color(0xFFEF4444)
+private val GreenNeon   = Color(0xFF10B981)
 
 private val TotemState.color get() = when (this) {
     TotemState.READY     -> PurpleNeon
@@ -57,9 +56,94 @@ private val TotemState.color get() = when (this) {
     TotemState.SPEAKING  -> GreenNeon
 }
 
-private val TotemState.glow get() = color.copy(alpha = 0.4f)
+// ── World-Class Visualizer ────────────────────────────────────────────────────
 
-// ── Components ────────────────────────────────────────────────────────────────
+@Composable
+fun NeuralOrb(state: TotemState, isListening: Boolean, rms: Float) {
+    val infiniteTransition = rememberInfiniteTransition(label = "neural")
+    
+    val baseRotation by infiniteTransition.animateFloat(
+        initialValue = 0f, targetValue = 360f,
+        animationSpec = infiniteRepeatable(tween(15000, easing = LinearEasing))
+    )
+
+    val waveAmplitude by animateFloatAsState(
+        targetValue = if (isListening) (rms * 2f).coerceIn(10f, 100f) else 15f,
+        animationSpec = spring(stiffness = Spring.StiffnessLow)
+    )
+
+    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(320.dp)) {
+        // Global Glow
+        Canvas(Modifier.fillMaxSize()) {
+            drawCircle(
+                brush = Brush.radialGradient(
+                    0.0f to state.color.copy(alpha = 0.2f),
+                    0.6f to state.color.copy(alpha = 0.05f),
+                    1.0f to Color.Transparent
+                ),
+                radius = size.width / 2
+            )
+        }
+
+        // Layered Wave Rings
+        repeat(4) { i ->
+            val phaseShift = (i * PI / 2).toFloat()
+            val speed = 2000 + (i * 500)
+            val time by infiniteTransition.animateFloat(
+                initialValue = 0f, targetValue = (2 * PI).toFloat(),
+                animationSpec = infiniteRepeatable(tween(speed, easing = LinearEasing))
+            )
+
+            Canvas(Modifier.fillMaxSize().graphicsLayer { rotationZ = baseRotation * (if(i%2==0) 1 else -1) }) {
+                val center = size / 2f
+                val radius = 90.dp.toPx() + (i * 12.dp.toPx())
+                val path = Path()
+                
+                for (angle in 0..360 step 5) {
+                    val rad = Math.toRadians(angle.toDouble()).toFloat()
+                    val wave = sin(rad * (i + 2) + time + phaseShift) * waveAmplitude
+                    val x = center.width + (radius + wave) * cos(rad)
+                    val y = center.height + (radius + wave) * sin(rad)
+                    
+                    if (angle == 0) path.moveTo(x, y) else path.lineTo(x, y)
+                }
+                path.close()
+                
+                drawPath(
+                    path = path,
+                    color = state.color.copy(alpha = 0.4f / (i + 1)),
+                    style = Stroke(width = (4 - i).coerceAtLeast(1).dp.toPx(), cap = StrokeCap.Round)
+                )
+            }
+        }
+
+        // Core AI Node
+        Surface(
+            modifier = Modifier.size(80.dp),
+            shape = CircleShape,
+            color = state.color,
+            shadowElevation = 32.dp,
+            tonalElevation = 16.dp,
+            border = BorderStroke(2.dp, Color.White.copy(0.3f))
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = when(state) {
+                        TotemState.READY -> Icons.Default.Adjust
+                        TotemState.LISTENING -> Icons.Default.MicNone
+                        TotemState.THINKING -> Icons.Default.Sync
+                        TotemState.SPEAKING -> Icons.Default.RecordVoiceOver
+                    },
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(36.dp)
+                )
+            }
+        }
+    }
+}
+
+// ── Screen Implementation ─────────────────────────────────────────────────────
 
 @Composable
 fun TotemScreen(
@@ -86,267 +170,133 @@ fun TotemScreen(
         if (messages.isNotEmpty()) listState.animateScrollToItem(messages.size - 1)
     }
 
-    Scaffold(
-        containerColor = BgDeep,
-        bottomBar = {
-            InputSection(
-                inputText = inputText,
-                isListening = isListening,
-                partialText = partialText,
-                onInputChange = { inputText = it },
-                onSend = {
-                    if (inputText.isNotBlank()) {
-                        viewModel.sendMessage(inputText)
-                        inputText = ""
-                    }
-                },
-                onToggleMic = {
-                    if (!hasMicPermission) permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                    else viewModel.toggleListening()
-                }
-            )
-        }
-    ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .drawBehind {
-                    drawRect(Brush.verticalGradient(listOf(BgDeep, Color(0xFF0A0A1F), BgDeep)))
-                }
-        ) {
-            Column(Modifier.fillMaxSize()) {
-                // Header
-                Header(state, onNavigateToSettings, onClear = { viewModel.clearHistory() })
-
-                // Neural Visualizer
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(0.4f),
-                    contentAlignment = Alignment.Center
-                ) {
-                    NeuralOrb(state, isListening, rmsLevel)
-                }
-
-                // Chat History
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier
-                        .weight(0.6f)
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    contentPadding = PaddingValues(bottom = 24.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(messages) { msg ->
-                        ChatBubblePremium(msg)
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun Header(state: TotemState, onSettings: () -> Unit, onClear: () -> Unit) {
-    Row(
+    Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(20.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+            .fillMaxSize()
+            .background(BgDeep)
+            .drawBehind {
+                drawRect(Brush.radialGradient(listOf(state.color.copy(0.08f), Color.Transparent)))
+            }
     ) {
-        Column {
-            Text(
-                "TOTEM CORE",
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 4.sp,
-                    color = Color.White
-                )
-            )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(8.dp).clip(CircleShape).background(state.color))
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    state.name.uppercase(),
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        color = state.color,
-                        letterSpacing = 2.sp
-                    )
-                )
+        Column(Modifier.fillMaxSize()) {
+            // Header Premium
+            Row(
+                Modifier.fillMaxWidth().padding(24.dp).statusBarsPadding(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text("QUANTUM", style = MaterialTheme.typography.labelSmall, color = state.color, letterSpacing = 4.sp)
+                    Text("TOTEM AI", style = MaterialTheme.typography.headlineSmall, color = Color.White, fontWeight = FontWeight.Black)
+                }
+                Row {
+                    IconButton(onClick = { viewModel.clearHistory() }) { Icon(Icons.Default.History, null, tint = Color.White.copy(0.4f)) }
+                    IconButton(onClick = onNavigateToSettings) { Icon(Icons.Default.Menu, null, tint = Color.White.copy(0.4f)) }
+                }
             }
-        }
-        Row {
-            IconButton(onClick = onClear) { Icon(Icons.Default.DeleteSweep, "Clear", tint = Color.White.copy(0.6f)) }
-            IconButton(onClick = onSettings) { Icon(Icons.Default.Settings, "Settings", tint = Color.White.copy(0.6f)) }
-        }
-    }
-}
 
-@Composable
-private fun NeuralOrb(state: TotemState, isListening: Boolean, rms: Float) {
-    val infiniteTransition = rememberInfiniteTransition(label = "orb")
-    
-    val rotation by infiniteTransition.animateFloat(
-        initialValue = 0f, targetValue = 360f,
-        animationSpec = infiniteRepeatable(tween(10000, easing = LinearEasing))
-    )
-
-    val scale by animateFloatAsState(
-        targetValue = if (isListening) 1f + (rms / 30f).coerceIn(0f, 0.5f) else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
-    )
-
-    Box(contentAlignment = Alignment.Center) {
-        // Outer Glow
-        Canvas(modifier = Modifier.size(280.dp)) {
-            drawCircle(
-                Brush.radialGradient(listOf(state.color.copy(0.15f), Color.Transparent)),
-                radius = size.width / 2 * scale
-            )
-        }
-
-        // Rotating Rings
-        repeat(3) { i ->
-            val angleOffset = i * 40f
-            Canvas(modifier = Modifier.size(180.dp + (i * 20).dp)) {
-                drawArc(
-                    color = state.color.copy(0.3f),
-                    startAngle = rotation + angleOffset,
-                    sweepAngle = 90f,
-                    useCenter = false,
-                    style = Stroke(width = 2.dp, cap = StrokeCap.Round)
-                )
+            // Visualizer Section
+            Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+                NeuralOrb(state, isListening, rmsLevel)
             }
-        }
 
-        // Central Core
-        Box(
-            modifier = Modifier
-                .size(100.dp)
-                .shadow(20.dp, CircleShape, ambientColor = state.color, spotColor = state.color)
-                .clip(CircleShape)
-                .background(Brush.linearGradient(listOf(state.color, state.color.copy(0.4f))))
-                .border(2.dp, Color.White.copy(0.2f), CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = when(state) {
-                    TotemState.READY -> Icons.Default.Adb
-                    TotemState.LISTENING -> Icons.Default.GraphicEq
-                    TotemState.THINKING -> Icons.Default.AutoAwesome
-                    TotemState.SPEAKING -> Icons.Default.VolumeUp
-                },
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(40.dp)
-            )
-        }
-    }
-}
-
-@Composable
-private fun ChatBubblePremium(message: Message) {
-    val alignment = if (message.isUser) Alignment.CenterEnd else Alignment.CenterStart
-    val shape = RoundedCornerShape(
-        topStart = 20.dp, topEnd = 20.dp,
-        bottomStart = if (message.isUser) 20.dp else 4.dp,
-        bottomEnd = if (message.isUser) 4.dp else 20.dp
-    )
-
-    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = alignment) {
-        Column(horizontalAlignment = if (message.isUser) Alignment.End else Alignment.Start) {
+            // Chat & Input Section
             Surface(
-                color = if (message.isUser) PurpleNeon.copy(0.2f) else BgGlass,
-                shape = shape,
-                border = BorderStroke(1.dp, if (message.isUser) PurpleNeon.copy(0.5f) else Color.White.copy(0.1f)),
-                modifier = Modifier.widthIn(max = 300.dp)
+                modifier = Modifier.fillMaxWidth().weight(1.2f),
+                color = BgGlass,
+                shape = RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp),
+                border = BorderStroke(1.dp, Color.White.copy(0.05f))
             ) {
-                Text(
-                    text = message.text,
-                    color = if (message.isError) RedNeon else Color.White,
-                    modifier = Modifier.padding(16.dp),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-            Text(
-                if (message.isUser) "VOCÊ" else "TOTEM",
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.White.copy(0.4f),
-                modifier = Modifier.padding(top = 4.dp, start = 8.dp, end = 8.dp)
-            )
-        }
-    }
-}
-
-@Composable
-private fun InputSection(
-    inputText: String,
-    isListening: Boolean,
-    partialText: String,
-    onInputChange: (String) -> Unit,
-    onSend: () -> Unit,
-    onToggleMic: () -> Unit
-) {
-    Surface(
-        color = BgGlass,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
-            .border(1.dp, Color.White.copy(0.05f), RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)),
-        tonalElevation = 8.dp
-    ) {
-        Row(
-            modifier = Modifier
-                .padding(24.dp)
-                .navigationBarsPadding()
-                .imePadding(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Glass Mic Button
-            Box(
-                modifier = Modifier
-                    .size(64.dp)
-                    .clip(CircleShape)
-                    .background(if (isListening) RedNeon else PurpleNeon)
-                    .pointerInput(Unit) { detectTapGestures { onToggleMic() } },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = if (isListening) Icons.Default.Stop else Icons.Default.Mic,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(32.dp)
-                )
-            }
-
-            // Glass Text Field
-            TextField(
-                value = if (isListening) partialText else inputText,
-                onValueChange = onInputChange,
-                modifier = Modifier.weight(1f),
-                placeholder = { Text(if (isListening) "Ouvindo..." else "Diga algo...", color = Color.White.copy(0.3f)) },
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.White.copy(0.05f),
-                    unfocusedContainerColor = Color.White.copy(0.05f),
-                    disabledContainerColor = Color.White.copy(0.05f),
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White
-                ),
-                shape = RoundedCornerShape(24.dp),
-                enabled = !isListening,
-                trailingIcon = {
-                    if (inputText.isNotBlank()) {
-                        IconButton(onClick = onSend) {
-                            Icon(Icons.Default.Send, null, tint = CyanNeon)
+                Column(Modifier.fillMaxSize().padding(top = 24.dp)) {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.weight(1f).padding(horizontal = 20.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        items(messages) { msg ->
+                            WorldClassBubble(msg)
                         }
                     }
+
+                    // Immersive Input
+                    Row(
+                        Modifier.fillMaxWidth().padding(24.dp).navigationBarsPadding().imePadding(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        // Advanced Mic Orb
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .shadow(24.dp, CircleShape, spotColor = state.color)
+                                .clip(CircleShape)
+                                .background(if (isListening) RedNeon else PurpleNeon)
+                                .pointerInput(Unit) { detectTapGestures { 
+                                    if (!hasMicPermission) permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                    else viewModel.toggleListening()
+                                } },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = if (isListening) Icons.Default.Square else Icons.Default.Mic,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+
+                        // Seamless Input
+                        TextField(
+                            value = if (isListening) partialText else inputText,
+                            onValueChange = { inputText = it },
+                            modifier = Modifier.weight(1f),
+                            placeholder = { Text(if (isListening) "Listening..." else "Message Totem...", color = Color.White.copy(0.2f)) },
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = Color.White.copy(0.03f),
+                                unfocusedContainerColor = Color.White.copy(0.03f),
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent,
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White
+                            ),
+                            shape = RoundedCornerShape(24.dp),
+                            enabled = !isListening,
+                            trailingIcon = {
+                                if (inputText.isNotBlank()) {
+                                    IconButton(onClick = {
+                                        viewModel.sendMessage(inputText)
+                                        inputText = ""
+                                    }) { Icon(Icons.Default.NorthEast, null, tint = CyanNeon) }
+                                }
+                            }
+                        )
+                    }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WorldClassBubble(message: Message) {
+    val alignment = if (message.isUser) Alignment.CenterEnd else Alignment.CenterStart
+    
+    Box(Modifier.fillMaxWidth(), contentAlignment = alignment) {
+        Surface(
+            color = if (message.isUser) PurpleNeon.copy(0.1f) else Color.White.copy(0.03f),
+            shape = RoundedCornerShape(
+                topStart = 24.dp, topEnd = 24.dp,
+                bottomStart = if (message.isUser) 24.dp else 4.dp,
+                bottomEnd = if (message.isUser) 4.dp else 24.dp
+            ),
+            border = BorderStroke(1.dp, if (message.isUser) PurpleNeon.copy(0.3f) else Color.White.copy(0.05f)),
+            modifier = Modifier.widthIn(max = 280.dp)
+        ) {
+            Text(
+                text = message.text,
+                color = if (message.isError) RedNeon else Color.White,
+                modifier = Modifier.padding(16.dp),
+                style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 22.sp)
             )
         }
     }

@@ -29,7 +29,9 @@ data class Message(
 class TotemViewModel @Inject constructor(
     private val askTotemUseCase: AskTotemUseCase,
     private val ttsManager: TextToSpeechManager,
-    private val speechManager: SpeechInputManager
+    private val speechManager: SpeechInputManager,
+    private val hapticManager: HapticManager,
+    private val voiceInteractionManager: VoiceInteractionManager
 ) : ViewModel() {
 
     private val sessionId = UUID.randomUUID().toString()
@@ -47,13 +49,18 @@ class TotemViewModel @Inject constructor(
     init {
         // Quando o reconhecimento termina, envia a mensagem
         speechManager.onResult = { text: String -> 
-            if (text.isNotBlank()) sendMessage(text) 
-            else _totemState.value = TotemState.READY
+            if (text.isNotBlank()) {
+                hapticManager.triggerSuccess()
+                sendMessage(text) 
+            } else {
+                _totemState.value = TotemState.READY
+            }
         }
         
-        // Quando o TTS termina, volta ao estado pronto
+        // Quando o TTS termina, volta ao estado pronto e libera o áudio
         ttsManager.onSpeechFinished = {
             _totemState.value = TotemState.READY
+            voiceInteractionManager.abandonAudioFocus()
         }
     }
 
@@ -71,10 +78,11 @@ class TotemViewModel @Inject constructor(
                 .onSuccess { reply ->
                     appendMessage(Message(text = reply, isUser = false))
                     _totemState.value = TotemState.SPEAKING
+                    voiceInteractionManager.requestAudioFocus()
                     ttsManager.speak(reply)
-                    // O estado volta para READY via listener onSpeechFinished
                 }
                 .onFailure { error ->
+                    hapticManager.triggerError()
                     val errorMsg = "CONECTION ERROR: ${error.localizedMessage ?: "Check server status and URL"}"
                     appendMessage(Message(text = errorMsg, isUser = false, isError = true))
                     _totemState.value = TotemState.READY
@@ -91,6 +99,8 @@ class TotemViewModel @Inject constructor(
 
     fun startListening() {
         if (_totemState.value == TotemState.THINKING) return
+        hapticManager.triggerListening()
+        voiceInteractionManager.requestAudioFocus()
         _totemState.value = TotemState.LISTENING
         speechManager.startListening()
     }
