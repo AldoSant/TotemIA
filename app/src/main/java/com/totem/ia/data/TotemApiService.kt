@@ -1,9 +1,12 @@
 package com.totem.ia.data
 
 import com.google.gson.annotations.SerializedName
-import retrofit2.http.Body
+import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.Body
 import retrofit2.http.Url
+import com.totem.ia.domain.model.Journey
+import com.totem.ia.domain.model.UserJourneyState
 
 // ── Request / Response ────────────────────────────────────────────────────────
 
@@ -18,17 +21,47 @@ data class ChatResponse(
     @SerializedName("reply_text") val replyText: String
 )
 
+data class JourneyInteractRequest(
+    @SerializedName("journey_id") val journeyId: String,
+    @SerializedName("chapter_id") val chapterId: String,
+    @SerializedName("user_text")  val userText: String
+)
+
 // ── API Interface ─────────────────────────────────────────────────────────────
 
 interface TotemApiService {
     /**
      * Sends a chat message to the OpenClaw server.
-     * The full URL is supplied at call-time via [url] so the user can change the
-     * server address at runtime without rebuilding Retrofit.
      */
     @POST
     suspend fun sendMessage(
         @Url  url: String,
         @Body request: ChatRequest
     ): ChatResponse
+
+    @GET
+    suspend fun getJourneys(
+        @Url url: String
+    ): List<Journey>
+
+    @GET
+    suspend fun getJourneyDetails(
+        @Url url: String
+    ): Journey
+
+    @GET
+    suspend fun getUserJourneyState(
+        @Url url: String
+    ): UserJourneyState
+
+    @POST
+    suspend fun interactWithJourney(
+        @Url url: String,
+        @Body request: JourneyInteractRequest
+    ): ChatResponse
+
+    @POST
+    suspend fun completeChapter(
+        @Url url: String
+    ): UserJourneyState
 }

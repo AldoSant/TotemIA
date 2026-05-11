@@ -8,7 +8,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Psychology
+import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -108,8 +110,40 @@ fun SettingsScreen(
                 )
             }
 
+            SettingsCard(
+                title = "Daily Reminder",
+                icon = androidx.compose.material.icons.filled.Notifications,
+                color = Color(0xFFFFB74D)
+            ) {
+                OutlinedTextField(
+                    value = viewModel.notificationTime.collectAsState().value,
+                    onValueChange = { viewModel.updateNotificationTime(it) },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text("07:00", color = Color.White.copy(0.3f)) },
+                    shape = RoundedCornerShape(16.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        focusedBorderColor = Color(0xFFFFB74D),
+                        unfocusedBorderColor = Color.White.copy(0.1f)
+                    )
+                )
+            }
+
             Spacer(Modifier.height(40.dp))
             
+            Button(
+                onClick = { viewModel.testVoice() },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(0.05f)),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, Color.White.copy(0.1f))
+            ) {
+                Icon(Icons.Default.VolumeUp, null, tint = Color.White)
+                Spacer(Modifier.width(12.dp))
+                Text("TESTAR VOZ DO TOTEM", color = Color.White)
+            }
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()

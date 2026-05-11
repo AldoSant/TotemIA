@@ -22,10 +22,13 @@ class SettingsManager @Inject constructor(
         val BASE_URL_KEY = stringPreferencesKey("base_url")
         val SYSTEM_PROMPT_KEY = stringPreferencesKey("system_prompt")
         val VOICE_NAME_KEY = stringPreferencesKey("voice_name")
+        val HAS_SEEN_ONBOARDING_KEY = stringPreferencesKey("has_seen_onboarding")
+        val NOTIFICATION_TIME_KEY = stringPreferencesKey("notification_time")
         
         const val DEFAULT_BASE_URL = "http://192.168.1.7:18790"
         const val DEFAULT_SYSTEM_PROMPT = "Você é um totem de inteligência artificial amigável. Responda de forma concisa e útil."
         const val DEFAULT_VOICE_NAME = ""
+        const val DEFAULT_NOTIFICATION_TIME = "07:00"
     }
 
     val baseUrlFlow: Flow<String> = context.dataStore.data.map { preferences ->
@@ -38,6 +41,14 @@ class SettingsManager @Inject constructor(
 
     val voiceNameFlow: Flow<String> = context.dataStore.data.map { preferences ->
         preferences[VOICE_NAME_KEY] ?: DEFAULT_VOICE_NAME
+    }
+
+    val hasSeenOnboardingFlow: Flow<Boolean> = context.dataStore.data.map { preferences ->
+        preferences[HAS_SEEN_ONBOARDING_KEY]?.toBoolean() ?: false
+    }
+
+    val notificationTimeFlow: Flow<String> = context.dataStore.data.map { preferences ->
+        preferences[NOTIFICATION_TIME_KEY] ?: DEFAULT_NOTIFICATION_TIME
     }
 
     suspend fun saveBaseUrl(url: String) {
@@ -55,6 +66,18 @@ class SettingsManager @Inject constructor(
     suspend fun saveVoiceName(name: String) {
         context.dataStore.edit { preferences ->
             preferences[VOICE_NAME_KEY] = name
+        }
+    }
+
+    suspend fun saveHasSeenOnboarding(hasSeen: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[HAS_SEEN_ONBOARDING_KEY] = hasSeen.toString()
+        }
+    }
+
+    suspend fun saveNotificationTime(time: String) {
+        context.dataStore.edit { preferences ->
+            preferences[NOTIFICATION_TIME_KEY] = time
         }
     }
 }
