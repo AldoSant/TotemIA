@@ -8,7 +8,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -26,10 +29,6 @@ import com.totem.ia.domain.model.Journey
 private val BgDeep = Color(0xFF020205)
 private val PurpleNeon = Color(0xFF8B5CF6)
 private val CyanNeon = Color(0xFF06B6D4)
-
-import androidx.compose.material.icons.filled.Settings
-
-import androidx.compose.material.icons.filled.BarChart
 
 @Composable
 fun JourneyListScreen(
