@@ -11,3 +11,9 @@ local.properties
 
 # Exclude references as they are other git repos
 /references/
+
+# Local Dev Environment
+android-sdk/
+jdk17/
+*.zip
+app/build/

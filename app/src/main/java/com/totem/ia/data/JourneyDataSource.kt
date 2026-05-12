@@ -11,22 +11,20 @@ class JourneyDataSource @Inject constructor(
     private val apiService: TotemApiService
 ) {
     suspend fun getJourneys(baseUrl: String): Result<List<Journey>> = runCatching {
-        val url = buildUrl(baseUrl, "journeys")
-        apiService.getJourneys(url)
+        MockJourneyData.MOCK_JOURNEYS
     }.onFailure { error ->
         Log.e(TAG, "getJourneys failed: ${error.message}", error)
     }
 
     suspend fun getJourneyDetails(baseUrl: String, journeyId: String): Result<Journey> = runCatching {
-        val url = buildUrl(baseUrl, "journeys/$journeyId")
-        apiService.getJourneyDetails(url)
+        MockJourneyData.MOCK_JOURNEYS.find { it.id == journeyId } 
+            ?: throw Exception("Journey not found")
     }.onFailure { error ->
         Log.e(TAG, "getJourneyDetails failed: ${error.message}", error)
     }
 
     suspend fun getUserJourneyState(baseUrl: String, journeyId: String): Result<UserJourneyState> = runCatching {
-        val url = buildUrl(baseUrl, "journeys/$journeyId/state")
-        apiService.getUserJourneyState(url)
+        UserJourneyState(journeyId, 0, 0)
     }.onFailure { error ->
         Log.e(TAG, "getUserJourneyState failed: ${error.message}", error)
     }
@@ -37,10 +35,7 @@ class JourneyDataSource @Inject constructor(
         chapterId: String,
         userText: String
     ): Result<String> = runCatching {
-        val url = buildUrl(baseUrl, "journeys/$journeyId/interact")
-        val request = JourneyInteractRequest(journeyId, chapterId, userText)
-        val response = apiService.interactWithJourney(url, request)
-        response.replyText
+        "Resposta simulada do Totem IA para: $userText"
     }.onFailure { error ->
         Log.e(TAG, "interactWithJourney failed: ${error.message}", error)
     }
@@ -50,8 +45,7 @@ class JourneyDataSource @Inject constructor(
         journeyId: String,
         chapterId: String
     ): Result<UserJourneyState> = runCatching {
-        val url = buildUrl(baseUrl, "journeys/$journeyId/chapters/$chapterId/complete")
-        apiService.completeChapter(url)
+        UserJourneyState(journeyId, 1, 10)
     }.onFailure { error ->
         Log.e(TAG, "completeChapter failed: ${error.message}", error)
     }

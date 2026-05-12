@@ -149,7 +149,7 @@ fun TotemScreen(
     var inputText   by remember { mutableStateOf("") }
 
     val listState      = rememberLazyListState()
-    val coroutineScope = rememberCoroutineScope()
+
     val context        = LocalContext.current
 
     var hasMicPermission by remember {

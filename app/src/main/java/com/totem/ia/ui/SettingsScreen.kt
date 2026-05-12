@@ -6,12 +6,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Psychology
-import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material3.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -52,7 +53,7 @@ fun SettingsScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, "Back", tint = Color.White)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = Color.White)
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
@@ -112,7 +113,7 @@ fun SettingsScreen(
 
             SettingsCard(
                 title = "Daily Reminder",
-                icon = androidx.compose.material.icons.filled.Notifications,
+                icon = Icons.Default.Notifications,
                 color = Color(0xFFFFB74D)
             ) {
                 OutlinedTextField(
@@ -139,7 +140,7 @@ fun SettingsScreen(
                 shape = RoundedCornerShape(16.dp),
                 border = BorderStroke(1.dp, Color.White.copy(0.1f))
             ) {
-                Icon(Icons.Default.VolumeUp, null, tint = Color.White)
+                Icon(Icons.AutoMirrored.Filled.VolumeUp, null, tint = Color.White)
                 Spacer(Modifier.width(12.dp))
                 Text("TESTAR VOZ DO TOTEM", color = Color.White)
             }

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
@@ -126,7 +127,7 @@ private fun ProgressCard(journey: Journey, userState: com.totem.ia.domain.model.
             Text(journey.title, color = Color.White, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(12.dp))
             LinearProgressIndicator(
-                progress = progress,
+                progress = { progress },
                 modifier = Modifier.fillMaxWidth().height(8.dp),
                 color = CyanNeon,
                 trackColor = Color.White.copy(0.1f)
