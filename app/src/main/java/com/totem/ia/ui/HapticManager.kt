@@ -22,20 +22,33 @@ class HapticManager @Inject constructor(
     }
 
     fun triggerClick() {
-        vibrate(VibrationEffect.createOneShot(10, VibrationEffect.DEFAULT_AMPLITUDE))
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vibrate(VibrationEffect.createOneShot(10, VibrationEffect.DEFAULT_AMPLITUDE))
+        } else {
+            @Suppress("DEPRECATION")
+            if (vibrator.hasVibrator()) vibrator.vibrate(10)
+        }
     }
 
     fun triggerSuccess() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK))
-        } else {
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             vibrate(VibrationEffect.createOneShot(20, 50))
+        } else {
+            @Suppress("DEPRECATION")
+            if (vibrator.hasVibrator()) vibrator.vibrate(20)
         }
     }
 
     fun triggerError() {
         val pattern = longArrayOf(0, 50, 50, 50)
-        vibrate(VibrationEffect.createWaveform(pattern, -1))
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vibrate(VibrationEffect.createWaveform(pattern, -1))
+        } else {
+            @Suppress("DEPRECATION")
+            if (vibrator.hasVibrator()) vibrator.vibrate(pattern, -1)
+        }
     }
 
     fun triggerListening() {
