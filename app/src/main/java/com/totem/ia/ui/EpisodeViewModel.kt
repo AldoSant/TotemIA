@@ -14,6 +14,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -23,6 +25,17 @@ enum class EpisodeStage {
     REFLECTING,   // IA asking questions, user answering
     COMPLETED
 }
+
+data class EpisodeUiState(
+    val stage: EpisodeStage = EpisodeStage.LOADING,
+    val journey: Journey? = null,
+    val chapter: Chapter? = null,
+    val messages: List<Message> = emptyList(),
+    val totemState: TotemState = TotemState.READY,
+    val isListening: Boolean = false,
+    val rmsLevel: Float = 0f,
+    val connectedDeviceName: String? = null
+)
 
 @HiltViewModel
 class EpisodeViewModel @Inject constructor(
@@ -39,23 +52,26 @@ class EpisodeViewModel @Inject constructor(
     private val chapterId: String = checkNotNull(savedStateHandle["chapterId"])
 
     private val _stage = MutableStateFlow(EpisodeStage.LOADING)
-    val stage: StateFlow<EpisodeStage> = _stage.asStateFlow()
-
     private val _journey = MutableStateFlow<Journey?>(null)
-    val journey: StateFlow<Journey?> = _journey.asStateFlow()
-
     private val _chapter = MutableStateFlow<Chapter?>(null)
-    val chapter: StateFlow<Chapter?> = _chapter.asStateFlow()
-
     private val _messages = MutableStateFlow<List<Message>>(emptyList())
-    val messages: StateFlow<List<Message>> = _messages.asStateFlow()
-
     private val _totemState = MutableStateFlow(TotemState.READY)
-    val totemState: StateFlow<TotemState> = _totemState.asStateFlow()
 
-    val isListening: StateFlow<Boolean> = speechManager.isListening
-    val rmsLevel: StateFlow<Float> = speechManager.rmsLevel
-    val connectedDeviceName: StateFlow<String?> = bluetoothManager.connectedDeviceName
+    val uiState: StateFlow<EpisodeUiState> = kotlinx.coroutines.flow.combine(
+        _stage, _journey, _chapter, _messages, _totemState
+    ) { stage, journey, chapter, messages, totemState ->
+        EpisodeUiState(stage = stage, journey = journey, chapter = chapter, messages = messages, totemState = totemState)
+    }.combine(speechManager.isListening) { state, isListening ->
+        state.copy(isListening = isListening)
+    }.combine(speechManager.rmsLevel) { state, rmsLevel ->
+        state.copy(rmsLevel = rmsLevel)
+    }.combine(bluetoothManager.connectedDeviceName) { state, deviceName ->
+        state.copy(connectedDeviceName = deviceName)
+    }.stateIn(
+        scope = viewModelScope,
+        started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000),
+        initialValue = EpisodeUiState()
+    )
 
     init {
         loadData()
@@ -121,7 +137,7 @@ class EpisodeViewModel @Inject constructor(
     }
 
     fun toggleListening() {
-        if (isListening.value) {
+        if (uiState.value.isListening) {
             speechManager.stopListening()
         } else {
             hapticManager.triggerListening()

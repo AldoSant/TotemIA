@@ -37,28 +37,34 @@ class ProgressViewModel @Inject constructor(
 
     fun loadProgress() {
         viewModelScope.launch {
-            _uiState.value = ProgressUiState.Loading
-            repository.getJourneys()
-                .onSuccess { journeys ->
-                    val states = mutableMapOf<String, UserJourneyState>()
-                    var maxStreak = 0
-                    
-                    for (journey in journeys) {
-                        repository.getUserJourneyState(journey.id).onSuccess { state ->
-                            states[journey.id] = state
-                            if (state.streak > maxStreak) maxStreak = state.streak
-                        }
+            repository.getJourneys().collect { result ->
+                when (result) {
+                    is com.totem.ia.data.network.NetworkResult.Loading -> {
+                        _uiState.value = ProgressUiState.Loading
                     }
+                    is com.totem.ia.data.network.NetworkResult.Success -> {
+                        val journeys = result.data
+                        val states = mutableMapOf<String, UserJourneyState>()
+                        var maxStreak = 0
+                        
+                        for (journey in journeys) {
+                            repository.getUserJourneyState(journey.id).onSuccess { state ->
+                                states[journey.id] = state
+                                if (state.streak > maxStreak) maxStreak = state.streak
+                            }
+                        }
 
-                    _uiState.value = ProgressUiState.Success(
-                        journeys = journeys,
-                        userStates = states,
-                        totalStreak = maxStreak
-                    )
+                        _uiState.value = ProgressUiState.Success(
+                            journeys = journeys,
+                            userStates = states,
+                            totalStreak = maxStreak
+                        )
+                    }
+                    is com.totem.ia.data.network.NetworkResult.Error -> {
+                        _uiState.value = ProgressUiState.Error(result.message)
+                    }
                 }
-                .onFailure { error ->
-                    _uiState.value = ProgressUiState.Error(error.localizedMessage ?: "Erro ao carregar progresso")
-                }
+            }
         }
     }
 }

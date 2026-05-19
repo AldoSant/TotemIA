@@ -39,18 +39,7 @@ class MainActivity : ComponentActivity() {
             val hasSeenOnboarding by settingsManager.hasSeenOnboardingFlow.collectAsState(initial = null)
             val scope = rememberCoroutineScope()
 
-            val darkColorScheme = androidx.compose.material3.darkColorScheme(
-                primary = Color(0xFF7C4DFF),
-                secondary = Color(0xFF00E5FF),
-                background = Color(0xFF0D0D1A),
-                surface = Color(0xFF1A1A2E),
-                onPrimary = Color.White,
-                onSecondary = Color.Black,
-                onBackground = Color.White,
-                onSurface = Color.White
-            )
-
-            MaterialTheme(colorScheme = darkColorScheme) {
+            com.totem.ia.ui.theme.TotemIATheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background

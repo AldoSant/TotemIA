@@ -22,22 +22,37 @@ class TotemBluetoothManager @Inject constructor(
     private val _connectedDeviceName = MutableStateFlow<String?>(null)
     val connectedDeviceName: StateFlow<String?> = _uiConnectedDeviceName()
 
-    @SuppressLint("MissingPermission")
     private fun _uiConnectedDeviceName(): StateFlow<String?> {
         val flow = MutableStateFlow<String?>(null)
-        bluetoothAdapter?.getProfileProxy(context, object : BluetoothProfile.ServiceListener {
-            override fun onServiceConnected(profile: Int, proxy: BluetoothProfile) {
-                if (profile == BluetoothProfile.A2DP) {
-                    val devices = proxy.connectedDevices
-                    if (devices.isNotEmpty()) {
-                        flow.value = devices[0].name
-                    }
-                }
-                bluetoothAdapter.closeProfileProxy(profile, proxy)
-            }
+        
+        val hasPermission = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            androidx.core.content.ContextCompat.checkSelfPermission(
+                context, android.Manifest.permission.BLUETOOTH_CONNECT
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        } else {
+            true // Permission is granted via Manifest on older versions
+        }
 
-            override fun onServiceDisconnected(profile: Int) {}
-        }, BluetoothProfile.A2DP)
+        if (hasPermission) {
+            try {
+                bluetoothAdapter?.getProfileProxy(context, object : BluetoothProfile.ServiceListener {
+                    override fun onServiceConnected(profile: Int, proxy: BluetoothProfile) {
+                        if (profile == BluetoothProfile.A2DP) {
+                            @SuppressLint("MissingPermission")
+                            val devices = proxy.connectedDevices
+                            if (devices.isNotEmpty()) {
+                                flow.value = devices[0].name
+                            }
+                        }
+                        bluetoothAdapter.closeProfileProxy(profile, proxy)
+                    }
+                    override fun onServiceDisconnected(profile: Int) {}
+                }, BluetoothProfile.A2DP)
+            } catch (e: SecurityException) {
+                // Should not happen since we checked, but safe fallback
+                flow.value = null
+            }
+        }
         return flow
     }
     

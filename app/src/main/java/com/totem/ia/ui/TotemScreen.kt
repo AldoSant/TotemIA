@@ -141,11 +141,12 @@ fun TotemScreen(
     onNavigateToSettings: () -> Unit,
     viewModel: TotemViewModel = hiltViewModel()
 ) {
-    val messages    by viewModel.messages.collectAsState()
-    val state       by viewModel.totemState.collectAsState()
-    val isListening by viewModel.isListening.collectAsState()
-    val partialText by viewModel.partialText.collectAsState()
-    val rmsLevel    by viewModel.rmsLevel.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
+    val messages = uiState.messages
+    val state = uiState.state
+    val isListening = uiState.isListening
+    val partialText = uiState.partialText
+    val rmsLevel = uiState.rmsLevel
     var inputText   by remember { mutableStateOf("") }
 
     val listState      = rememberLazyListState()

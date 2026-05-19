@@ -9,12 +9,23 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.launch
 import com.totem.ia.voice.VoiceInteractionManager
 import java.util.UUID
 import javax.inject.Inject
 
 // ── ViewModel ─────────────────────────────────────────────────────────────────
+
+data class TotemUiState(
+    val state: TotemState = TotemState.READY,
+    val messages: List<Message> = emptyList(),
+    val isListening: Boolean = false,
+    val partialText: String = "",
+    val rmsLevel: Float = 0f
+)
 
 @HiltViewModel
 class TotemViewModel @Inject constructor(
@@ -28,14 +39,21 @@ class TotemViewModel @Inject constructor(
     private val sessionId = UUID.randomUUID().toString()
 
     private val _totemState = MutableStateFlow(TotemState.READY)
-    val totemState: StateFlow<TotemState> = _totemState.asStateFlow()
-
     private val _messages = MutableStateFlow<List<Message>>(emptyList())
-    val messages: StateFlow<List<Message>> = _messages.asStateFlow()
 
-    val isListening: StateFlow<Boolean> = speechManager.isListening
-    val partialText: StateFlow<String> = speechManager.spokenText
-    val rmsLevel: StateFlow<Float> = speechManager.rmsLevel
+    val uiState: StateFlow<TotemUiState> = kotlinx.coroutines.flow.combine(
+        _totemState,
+        _messages,
+        speechManager.isListening,
+        speechManager.spokenText,
+        speechManager.rmsLevel
+    ) { state, msgs, isListening, partialText, rms ->
+        TotemUiState(state, msgs, isListening, partialText, rms)
+    }.stateIn(
+        scope = viewModelScope,
+        started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000),
+        initialValue = TotemUiState()
+    )
 
     init {
         // Quando o reconhecimento termina, envia a mensagem
@@ -101,7 +119,7 @@ class TotemViewModel @Inject constructor(
     }
 
     fun toggleListening() {
-        if (isListening.value) {
+        if (uiState.value.isListening) {
             stopListening()
         } else {
             startListening()

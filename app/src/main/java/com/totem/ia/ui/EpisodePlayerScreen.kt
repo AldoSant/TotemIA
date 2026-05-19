@@ -34,14 +34,15 @@ fun EpisodePlayerScreen(
     onClose: () -> Unit,
     viewModel: EpisodeViewModel = hiltViewModel()
 ) {
-    val stage by viewModel.stage.collectAsState()
-    val journey by viewModel.journey.collectAsState()
-    val chapter by viewModel.chapter.collectAsState()
-    val totemState by viewModel.totemState.collectAsState()
-    val isListening by viewModel.isListening.collectAsState()
-    val rmsLevel by viewModel.rmsLevel.collectAsState()
-    val messages by viewModel.messages.collectAsState()
-    val connectedDeviceName by viewModel.connectedDeviceName.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
+    val stage = uiState.stage
+    val journey = uiState.journey
+    val chapter = uiState.chapter
+    val totemState = uiState.totemState
+    val isListening = uiState.isListening
+    val rmsLevel = uiState.rmsLevel
+    val messages = uiState.messages
+    val connectedDeviceName = uiState.connectedDeviceName
 
     Box(
         modifier = Modifier

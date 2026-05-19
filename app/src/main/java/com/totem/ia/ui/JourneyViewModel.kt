@@ -37,30 +37,35 @@ class JourneyViewModel @Inject constructor(
 
     fun loadJourneys() {
         viewModelScope.launch {
-            _uiState.value = JourneyUiState.Loading
-            repository.getJourneys()
-                .onSuccess { journeys ->
-                    // Procura por jornada em andamento (simplificado para o MVP)
-                    var current: Pair<Journey, UserJourneyState>? = null
-                    for (j in journeys) {
-                        val state = repository.getUserJourneyState(j.id).getOrNull()
-                        if (state != null && state.progressPercent > 0 && state.progressPercent < 100) {
-                            current = j to state
-                            break
-                        }
+            repository.getJourneys().collect { result ->
+                when (result) {
+                    is com.totem.ia.data.network.NetworkResult.Loading -> {
+                        _uiState.value = JourneyUiState.Loading
                     }
-                    
-                    val recommended = journeys.find { it.isRecommended } ?: journeys.firstOrNull()
-                    
-                    _uiState.value = JourneyUiState.Success(
-                        journeys = journeys,
-                        currentJourney = current,
-                        recommendedJourney = recommended
-                    )
+                    is com.totem.ia.data.network.NetworkResult.Success -> {
+                        val journeys = result.data
+                        var current: Pair<Journey, UserJourneyState>? = null
+                        for (j in journeys) {
+                            val state = repository.getUserJourneyState(j.id).getOrNull()
+                            if (state != null && state.progressPercent > 0 && state.progressPercent < 100) {
+                                current = j to state
+                                break
+                            }
+                        }
+                        
+                        val recommended = journeys.find { it.isRecommended } ?: journeys.firstOrNull()
+                        
+                        _uiState.value = JourneyUiState.Success(
+                            journeys = journeys,
+                            currentJourney = current,
+                            recommendedJourney = recommended
+                        )
+                    }
+                    is com.totem.ia.data.network.NetworkResult.Error -> {
+                        _uiState.value = JourneyUiState.Error(result.message)
+                    }
                 }
-                .onFailure { error ->
-                    _uiState.value = JourneyUiState.Error(error.localizedMessage ?: "Erro ao carregar jornadas")
-                }
+            }
         }
     }
 }
