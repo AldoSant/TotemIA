@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
@@ -36,6 +37,7 @@ fun JourneyListScreen(
     onJourneyClick: (String) -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToProgress: () -> Unit,
+    onNavigateToDiary: () -> Unit,
     viewModel: JourneyViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -76,6 +78,9 @@ fun JourneyListScreen(
                     )
                 }
                 Row {
+                    IconButton(onClick = onNavigateToDiary) {
+                        Icon(Icons.Default.Book, null, tint = Color.White.copy(0.4f))
+                    }
                     IconButton(onClick = onNavigateToProgress) {
                         Icon(Icons.Default.BarChart, null, tint = Color.White.copy(0.4f))
                     }

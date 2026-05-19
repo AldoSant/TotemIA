@@ -64,7 +64,8 @@ class MainActivity : ComponentActivity() {
                             JourneyListScreen(
                                 onJourneyClick = { id -> navController.navigate("journey/$id") },
                                 onNavigateToSettings = { navController.navigate("settings") },
-                                onNavigateToProgress = { navController.navigate("progress") }
+                                onNavigateToProgress = { navController.navigate("progress") },
+                                onNavigateToDiary = { navController.navigate("diary") }
                             )
                         }
                         composable("progress") {
@@ -90,6 +91,11 @@ class MainActivity : ComponentActivity() {
                         }
                         composable("settings") {
                             SettingsScreen(
+                                onNavigateBack = { navController.popBackStack() }
+                            )
+                        }
+                        composable("diary") {
+                            DiaryScreen(
                                 onNavigateBack = { navController.popBackStack() }
                             )
                         }

@@ -3,6 +3,8 @@ package com.totem.ia.domain.repository
 import com.totem.ia.data.TotemApiService
 import com.totem.ia.data.SettingsManager
 import com.totem.ia.data.local.JourneyDao
+import com.totem.ia.data.local.ReflectionDao
+import com.totem.ia.data.local.ReflectionEntity
 import com.totem.ia.data.local.toDomain
 import com.totem.ia.data.local.toEntity
 import com.totem.ia.data.network.NetworkResult
@@ -16,6 +18,7 @@ import javax.inject.Inject
 class JourneyRepository @Inject constructor(
     private val apiService: TotemApiService,
     private val journeyDao: JourneyDao,
+    private val reflectionDao: ReflectionDao,
     private val settingsManager: SettingsManager
 ) {
     fun getJourneys(): Flow<NetworkResult<List<Journey>>> = flow {
@@ -71,7 +74,36 @@ class JourneyRepository @Inject constructor(
         chapterId: String,
         userText: String
     ): Result<String> {
-        return Result.success("Resposta do TOTEM para: $userText")
+        return try {
+            val recentReflections = reflectionDao.getRecentReflections(3)
+            val context = recentReflections.joinToString("\n") { "User: ${it.userText}\nTotem: ${it.aiResponse}" }
+            
+            // Aqui seria a chamada real para a API enviando o RAG (contexto + novo texto)
+            // val response = apiService.askTotem(context + "\nUser: " + userText)
+            
+            // Mock de IA inteligente
+            val totemResponse = if (recentReflections.isNotEmpty()) {
+                "Lembro que antes você disse algo relacionado a isso. Muito interessante sua perspectiva atual sobre: $userText"
+            } else {
+                "Esta é sua primeira reflexão. Resposta do TOTEM para: $userText"
+            }
+
+            // Salva a memória no banco local
+            reflectionDao.insertReflection(
+                ReflectionEntity(
+                    id = java.util.UUID.randomUUID().toString(),
+                    journeyId = journeyId,
+                    chapterId = chapterId,
+                    userText = userText,
+                    aiResponse = totemResponse,
+                    timestamp = System.currentTimeMillis()
+                )
+            )
+
+            Result.success(totemResponse)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
     suspend fun completeChapter(

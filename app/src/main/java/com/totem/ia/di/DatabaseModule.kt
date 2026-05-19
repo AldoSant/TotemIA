@@ -3,6 +3,7 @@ package com.totem.ia.di
 import android.content.Context
 import androidx.room.Room
 import com.totem.ia.data.local.JourneyDao
+import com.totem.ia.data.local.ReflectionDao
 import com.totem.ia.data.local.TotemDatabase
 import dagger.Module
 import dagger.Provides
@@ -29,5 +30,10 @@ object DatabaseModule {
     @Singleton
     fun provideJourneyDao(database: TotemDatabase): JourneyDao {
         return database.journeyDao()
+    }
+
+    @Provides
+    fun provideReflectionDao(database: TotemDatabase): ReflectionDao {
+        return database.reflectionDao()
     }
 }

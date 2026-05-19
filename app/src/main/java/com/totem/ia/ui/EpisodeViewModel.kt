@@ -3,6 +3,7 @@ package com.totem.ia.ui
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.totem.ia.audio.SoundscapeManager
 import com.totem.ia.bluetooth.TotemBluetoothManager
 import com.totem.ia.domain.model.Chapter
 import com.totem.ia.domain.model.Journey
@@ -45,6 +46,7 @@ class EpisodeViewModel @Inject constructor(
     private val voiceInteractionManager: VoiceInteractionManager,
     private val hapticManager: HapticManager,
     private val bluetoothManager: TotemBluetoothManager,
+    private val soundscapeManager: SoundscapeManager,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -83,6 +85,7 @@ class EpisodeViewModel @Inject constructor(
         }
 
         ttsManager.onSpeechFinished = {
+            soundscapeManager.restoreVolume()
             if (_stage.value == EpisodeStage.PLAYING_INTRO) {
                 startReflection()
             } else {
@@ -98,6 +101,7 @@ class EpisodeViewModel @Inject constructor(
                 _journey.value = j
                 _chapter.value = j.chapters.find { it.id == chapterId }
                 _stage.value = EpisodeStage.PLAYING_INTRO
+                soundscapeManager.playSoundscape(j.category)
                 startEpisode()
             }
         }
@@ -106,6 +110,7 @@ class EpisodeViewModel @Inject constructor(
     private fun startEpisode() {
         val script = _chapter.value?.scriptBase ?: return
         _totemState.value = TotemState.SPEAKING
+        soundscapeManager.duckVolume()
         voiceInteractionManager.requestAudioFocus()
         ttsManager.speak(script)
     }
@@ -115,6 +120,7 @@ class EpisodeViewModel @Inject constructor(
         val firstPrompt = _chapter.value?.reflectionPrompts?.firstOrNull() ?: "O que você achou dessa reflexão?"
         appendMessage(Message(firstPrompt, isUser = false))
         _totemState.value = TotemState.SPEAKING
+        soundscapeManager.duckVolume()
         ttsManager.speak(firstPrompt)
     }
 
@@ -128,6 +134,7 @@ class EpisodeViewModel @Inject constructor(
                 .onSuccess { reply ->
                     appendMessage(Message(reply, isUser = false))
                     _totemState.value = TotemState.SPEAKING
+                    soundscapeManager.duckVolume()
                     ttsManager.speak(reply)
                 }
                 .onFailure {
@@ -139,9 +146,11 @@ class EpisodeViewModel @Inject constructor(
     fun toggleListening() {
         if (uiState.value.isListening) {
             speechManager.stopListening()
+            soundscapeManager.restoreVolume()
         } else {
             hapticManager.triggerListening()
             _totemState.value = TotemState.LISTENING
+            soundscapeManager.duckVolume()
             speechManager.startListening()
         }
     }
@@ -168,5 +177,6 @@ class EpisodeViewModel @Inject constructor(
         super.onCleared()
         ttsManager.stop()
         speechManager.stopListening()
+        soundscapeManager.stop()
     }
 }
