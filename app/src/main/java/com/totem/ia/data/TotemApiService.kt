@@ -50,7 +50,7 @@ interface TotemApiService {
     @GET
     suspend fun getJourneys(
         @Url url: String
-    ): List<Journey>
+    ): com.google.gson.JsonElement
 
     @GET
     suspend fun getJourneyDetails(

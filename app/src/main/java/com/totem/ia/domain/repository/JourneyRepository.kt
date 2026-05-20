@@ -33,7 +33,21 @@ class JourneyRepository @Inject constructor(
         
         // 2. Fetch from network
         try {
-            val remoteJourneys = apiService.getJourneys(buildUrl(baseUrl, "journeys"))
+            val response = apiService.getJourneys(buildUrl(baseUrl, "journeys"))
+            val remoteJourneys = if (response.isJsonArray) {
+                com.google.gson.Gson().fromJson(response, Array<Journey>::class.java).toList()
+            } else if (response.isJsonObject) {
+                val obj = response.asJsonObject
+                val arr = obj.getAsJsonArray("journeys") ?: obj.getAsJsonArray("data") ?: obj.getAsJsonArray("items")
+                if (arr != null) {
+                    com.google.gson.Gson().fromJson(arr, Array<Journey>::class.java).toList()
+                } else {
+                    emptyList()
+                }
+            } else {
+                emptyList()
+            }
+
             // Update cache
             journeyDao.clearAndInsert(
                 journeys = remoteJourneys.map { it.toEntity() },
@@ -113,6 +127,7 @@ class JourneyRepository @Inject constructor(
         }
     }
 
+    @Suppress("UNUSED_PARAMETER")
     suspend fun completeChapter(
         journeyId: String,
         chapterId: String
