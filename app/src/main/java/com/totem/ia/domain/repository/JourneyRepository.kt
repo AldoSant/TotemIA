@@ -65,8 +65,14 @@ class JourneyRepository @Inject constructor(
     }
 
     suspend fun getUserJourneyState(journeyId: String): Result<UserJourneyState> {
-        // Mocking user state for now until local DB table is created for user states
-        return Result.success(UserJourneyState(journeyId, 0, 0))
+        return try {
+            val baseUrl = settingsManager.baseUrlFlow.first()
+            val state = apiService.getUserJourneyState(buildUrl(baseUrl, "users/default_user/progress"))
+            Result.success(state)
+        } catch (e: Exception) {
+            // Fallback for demo purposes if not connected
+            Result.success(UserJourneyState(journeyId, 0, 0))
+        }
     }
 
     suspend fun interactWithJourney(
@@ -76,17 +82,18 @@ class JourneyRepository @Inject constructor(
     ): Result<String> {
         return try {
             val recentReflections = reflectionDao.getRecentReflections(3)
-            val context = recentReflections.joinToString("\n") { "User: ${it.userText}\nTotem: ${it.aiResponse}" }
+            val contextList = recentReflections.map { "User: ${it.userText}\nTotem: ${it.aiResponse}" }
             
-            // Aqui seria a chamada real para a API enviando o RAG (contexto + novo texto)
-            // val response = apiService.askTotem(context + "\nUser: " + userText)
+            val baseUrl = settingsManager.baseUrlFlow.first()
+            val request = com.totem.ia.data.TotemAskRequest(
+                journeyId = journeyId,
+                chapterId = chapterId,
+                userText = userText,
+                context = contextList
+            )
             
-            // Mock de IA inteligente
-            val totemResponse = if (recentReflections.isNotEmpty()) {
-                "Lembro que antes você disse algo relacionado a isso. Muito interessante sua perspectiva atual sobre: $userText"
-            } else {
-                "Esta é sua primeira reflexão. Resposta do TOTEM para: $userText"
-            }
+            val response = apiService.askTotem(buildUrl(baseUrl, "totem/ask"), request)
+            val totemResponse = response.answer
 
             // Salva a memória no banco local
             reflectionDao.insertReflection(

@@ -21,10 +21,18 @@ data class ChatResponse(
     @SerializedName("reply_text") val replyText: String
 )
 
-data class JourneyInteractRequest(
-    @SerializedName("journey_id") val journeyId: String,
-    @SerializedName("chapter_id") val chapterId: String,
-    @SerializedName("user_text")  val userText: String
+data class TotemAskRequest(
+    @SerializedName("journeyId") val journeyId: String,
+    @SerializedName("chapterId") val chapterId: String,
+    @SerializedName("userText")  val userText: String,
+    @SerializedName("context")   val context: List<String>
+)
+
+data class TotemAskResponse(
+    @SerializedName("journeyId") val journeyId: String,
+    @SerializedName("chapterId") val chapterId: String,
+    @SerializedName("answer")    val answer: String,
+    @SerializedName("model")     val model: String
 )
 
 // ── API Interface ─────────────────────────────────────────────────────────────
@@ -55,10 +63,10 @@ interface TotemApiService {
     ): UserJourneyState
 
     @POST
-    suspend fun interactWithJourney(
+    suspend fun askTotem(
         @Url url: String,
-        @Body request: JourneyInteractRequest
-    ): ChatResponse
+        @Body request: TotemAskRequest
+    ): TotemAskResponse
 
     @POST
     suspend fun completeChapter(
