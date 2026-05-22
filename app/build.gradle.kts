@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -8,6 +10,15 @@ plugins {
 android {
     namespace = "com.totem.ia"
     compileSdk = 34
+
+    val localProperties = Properties()
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localPropertiesFile.inputStream().use { localProperties.load(it) }
+    }
+    val rawKey = localProperties.getProperty("TOTEM_API_KEY") ?: ""
+    val cleanKey = rawKey.removeSurrounding("\"").removeSurrounding("'")
+    val totemApiKey = "\"$cleanKey\""
 
     defaultConfig {
         applicationId = "com.totem.ia"
@@ -20,6 +31,7 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+        buildConfigField("String", "TOTEM_API_KEY", totemApiKey)
     }
 
     buildTypes {
@@ -37,6 +49,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.10"

@@ -19,20 +19,14 @@ class SettingsManager @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     companion object {
-        val BASE_URL_KEY = stringPreferencesKey("base_url")
         val SYSTEM_PROMPT_KEY = stringPreferencesKey("system_prompt")
         val VOICE_NAME_KEY = stringPreferencesKey("voice_name")
         val HAS_SEEN_ONBOARDING_KEY = stringPreferencesKey("has_seen_onboarding")
         val NOTIFICATION_TIME_KEY = stringPreferencesKey("notification_time")
-        
-        const val DEFAULT_BASE_URL = "https://veredasinc.com.br/totemia/"
+
         const val DEFAULT_SYSTEM_PROMPT = "Você é um totem de inteligência artificial amigável. Responda de forma concisa e útil."
         const val DEFAULT_VOICE_NAME = ""
         const val DEFAULT_NOTIFICATION_TIME = "07:00"
-    }
-
-    val baseUrlFlow: Flow<String> = context.dataStore.data.map { preferences ->
-        preferences[BASE_URL_KEY] ?: DEFAULT_BASE_URL
     }
 
     val systemPromptFlow: Flow<String> = context.dataStore.data.map { preferences ->
@@ -49,12 +43,6 @@ class SettingsManager @Inject constructor(
 
     val notificationTimeFlow: Flow<String> = context.dataStore.data.map { preferences ->
         preferences[NOTIFICATION_TIME_KEY] ?: DEFAULT_NOTIFICATION_TIME
-    }
-
-    suspend fun saveBaseUrl(url: String) {
-        context.dataStore.edit { preferences ->
-            preferences[BASE_URL_KEY] = url
-        }
     }
 
     suspend fun saveSystemPrompt(prompt: String) {

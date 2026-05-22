@@ -1,7 +1,6 @@
 package com.totem.ia.domain.repository
 
 import com.totem.ia.data.TotemApiService
-import com.totem.ia.data.SettingsManager
 import com.totem.ia.data.local.JourneyDao
 import com.totem.ia.data.local.ReflectionDao
 import com.totem.ia.data.local.ReflectionEntity
@@ -18,22 +17,20 @@ import javax.inject.Inject
 class JourneyRepository @Inject constructor(
     private val apiService: TotemApiService,
     private val journeyDao: JourneyDao,
-    private val reflectionDao: ReflectionDao,
-    private val settingsManager: SettingsManager
+    private val reflectionDao: ReflectionDao
 ) {
     fun getJourneys(): Flow<NetworkResult<List<Journey>>> = flow {
         emit(NetworkResult.Loading())
-        val baseUrl = settingsManager.baseUrlFlow.first()
-        
+
         // 1. Emit local cache first
         val localData = journeyDao.getJourneysWithChapters().first()
         if (localData.isNotEmpty()) {
             emit(NetworkResult.Success(localData.map { it.toDomain() }))
         }
-        
+
         // 2. Fetch from network
         try {
-            val response = apiService.getJourneys(buildUrl(baseUrl, "journeys"))
+            val response = apiService.getJourneys()
             val remoteJourneys = if (response.isJsonArray) {
                 com.google.gson.Gson().fromJson(response, Array<Journey>::class.java).toList()
             } else if (response.isJsonObject) {
@@ -80,8 +77,7 @@ class JourneyRepository @Inject constructor(
 
     suspend fun getUserJourneyState(journeyId: String): Result<UserJourneyState> {
         return try {
-            val baseUrl = settingsManager.baseUrlFlow.first()
-            val state = apiService.getUserJourneyState(buildUrl(baseUrl, "users/default_user/progress"))
+            val state = apiService.getUserJourneyState("default_user")
             Result.success(state)
         } catch (e: Exception) {
             // Fallback for demo purposes if not connected
@@ -97,16 +93,15 @@ class JourneyRepository @Inject constructor(
         return try {
             val recentReflections = reflectionDao.getRecentReflections(3)
             val contextList = recentReflections.map { "User: ${it.userText}\nTotem: ${it.aiResponse}" }
-            
-            val baseUrl = settingsManager.baseUrlFlow.first()
+
             val request = com.totem.ia.data.TotemAskRequest(
                 journeyId = journeyId,
                 chapterId = chapterId,
                 userText = userText,
                 context = contextList
             )
-            
-            val response = apiService.askTotem(buildUrl(baseUrl, "totem/ask"), request)
+
+            val response = apiService.askTotem(request)
             val totemResponse = response.answer
 
             // Salva a memória no banco local
@@ -133,10 +128,5 @@ class JourneyRepository @Inject constructor(
         chapterId: String
     ): Result<UserJourneyState> {
         return Result.success(UserJourneyState(journeyId, 1, 10))
-    }
-    
-    private fun buildUrl(baseUrl: String, endpoint: String): String {
-        val base = if (baseUrl.endsWith("/")) baseUrl else "$baseUrl/"
-        return "$base$endpoint"
     }
 }

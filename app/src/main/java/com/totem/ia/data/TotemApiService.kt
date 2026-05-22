@@ -1,10 +1,11 @@
 package com.totem.ia.data
 
+import com.google.gson.JsonElement
 import com.google.gson.annotations.SerializedName
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Body
-import retrofit2.http.Url
+import retrofit2.http.Path
 import com.totem.ia.domain.model.Journey
 import com.totem.ia.domain.model.UserJourneyState
 
@@ -38,38 +39,38 @@ data class TotemAskResponse(
 // ── API Interface ─────────────────────────────────────────────────────────────
 
 interface TotemApiService {
-    /**
-     * Sends a chat message to the OpenClaw server.
-     */
-    @POST
+
+    /** Health check — no API key required (interceptor omits it for /health). */
+    @GET("health")
+    suspend fun checkHealth(): okhttp3.ResponseBody
+
+    /** Sends a chat message to the Totem AI. */
+    @POST("chat")
     suspend fun sendMessage(
-        @Url  url: String,
         @Body request: ChatRequest
     ): ChatResponse
 
-    @GET
-    suspend fun getJourneys(
-        @Url url: String
-    ): com.google.gson.JsonElement
+    @GET("journeys")
+    suspend fun getJourneys(): JsonElement
 
-    @GET
+    @GET("journeys/{journeyId}")
     suspend fun getJourneyDetails(
-        @Url url: String
+        @Path("journeyId") journeyId: String
     ): Journey
 
-    @GET
+    @GET("users/{userId}/progress")
     suspend fun getUserJourneyState(
-        @Url url: String
+        @Path("userId") userId: String
     ): UserJourneyState
 
-    @POST
+    @POST("totem/ask")
     suspend fun askTotem(
-        @Url url: String,
         @Body request: TotemAskRequest
     ): TotemAskResponse
 
-    @POST
+    @POST("journeys/{journeyId}/chapters/{chapterId}/complete")
     suspend fun completeChapter(
-        @Url url: String
+        @Path("journeyId") journeyId: String,
+        @Path("chapterId") chapterId: String
     ): UserJourneyState
 }

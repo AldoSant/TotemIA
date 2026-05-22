@@ -19,9 +19,6 @@ class SettingsViewModel @Inject constructor(
     private val ttsManager: TextToSpeechManager
 ) : ViewModel() {
 
-    private val _baseUrl = MutableStateFlow(SettingsManager.DEFAULT_BASE_URL)
-    val baseUrl: StateFlow<String> = _baseUrl.asStateFlow()
-
     private val _systemPrompt = MutableStateFlow(SettingsManager.DEFAULT_SYSTEM_PROMPT)
     val systemPrompt: StateFlow<String> = _systemPrompt.asStateFlow()
 
@@ -30,19 +27,11 @@ class SettingsViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            settingsManager.baseUrlFlow.collect { _baseUrl.value = it }
-        }
-        viewModelScope.launch {
             settingsManager.systemPromptFlow.collect { _systemPrompt.value = it }
         }
         viewModelScope.launch {
             settingsManager.notificationTimeFlow.collect { _notificationTime.value = it }
         }
-    }
-
-    fun updateBaseUrl(url: String) {
-        _baseUrl.value = url
-        viewModelScope.launch { settingsManager.saveBaseUrl(url) }
     }
 
     fun updateSystemPrompt(prompt: String) {
@@ -52,7 +41,7 @@ class SettingsViewModel @Inject constructor(
 
     fun updateNotificationTime(time: String) {
         _notificationTime.value = time
-        viewModelScope.launch { 
+        viewModelScope.launch {
             settingsManager.saveNotificationTime(time)
             notificationScheduler.scheduleDailyReminder()
         }
