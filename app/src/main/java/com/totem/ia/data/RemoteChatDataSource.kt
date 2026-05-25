@@ -1,6 +1,7 @@
 package com.totem.ia.data
 
 import android.util.Log
+import com.totem.ia.BuildConfig
 import javax.inject.Inject
 
 private const val TAG = "RemoteChatDataSource"
@@ -28,6 +29,8 @@ class RemoteChatDataSource @Inject constructor(
         val response = apiService.sendMessage(request)
         response.replyText
     }.onFailure { error ->
-        Log.e(TAG, "sendMessage failed: ${error.message}", error)
+        if (BuildConfig.DEBUG) {
+            Log.e(TAG, "sendMessage failed: ${error.message}", error)
+        }
     }
 }
