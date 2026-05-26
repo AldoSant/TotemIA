@@ -16,7 +16,10 @@ android {
     if (localPropertiesFile.exists()) {
         localPropertiesFile.inputStream().use { localProperties.load(it) }
     }
-    val rawKey = localProperties.getProperty("TOTEM_API_KEY") ?: ""
+    val rawKey = localProperties.getProperty("TOTEM_API_KEY")
+        ?: providers.gradleProperty("TOTEM_API_KEY").orNull
+        ?: providers.environmentVariable("TOTEM_API_KEY").orNull
+        ?: ""
     val cleanKey = rawKey.removeSurrounding("\"").removeSurrounding("'")
     val totemApiKey = "\"$cleanKey\""
 

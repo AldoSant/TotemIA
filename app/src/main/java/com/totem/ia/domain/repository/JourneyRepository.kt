@@ -1,5 +1,6 @@
 package com.totem.ia.domain.repository
 
+import com.totem.ia.data.MockJourneyData
 import com.totem.ia.data.TotemApiService
 import com.totem.ia.data.local.JourneyDao
 import com.totem.ia.data.local.ReflectionDao
@@ -12,6 +13,7 @@ import com.totem.ia.domain.model.UserJourneyState
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import retrofit2.HttpException
 import javax.inject.Inject
 
 class JourneyRepository @Inject constructor(
@@ -53,11 +55,20 @@ class JourneyRepository @Inject constructor(
             val updatedLocal = journeyDao.getJourneysWithChapters().first()
             emit(NetworkResult.Success(updatedLocal.map { it.toDomain() }))
         } catch (e: Exception) {
-            if (localData.isEmpty()) {
-                emit(NetworkResult.Error(e.message ?: "Erro de conexão e sem dados locais"))
-            } else {
-                // Keep showing local data if network fails
+            // APKs gerados sem TOTEM_API_KEY recebem HTTP 401 em /journeys.
+            // A página inicial deve continuar utilizável com jornadas locais embarcadas;
+            // os endpoints de IA continuam exigindo uma chave válida para respostas online.
+            if (localData.isNotEmpty()) {
                 emit(NetworkResult.Success(localData.map { it.toDomain() }))
+            } else if (e is HttpException && e.code() == 401) {
+                val fallbackJourneys = MockJourneyData.MOCK_JOURNEYS
+                journeyDao.clearAndInsert(
+                    journeys = fallbackJourneys.map { it.toEntity() },
+                    chapters = fallbackJourneys.flatMap { journey -> journey.chapters.map { it.toEntity() } }
+                )
+                emit(NetworkResult.Success(fallbackJourneys))
+            } else {
+                emit(NetworkResult.Error(e.message ?: "Erro de conexão e sem dados locais"))
             }
         }
     }

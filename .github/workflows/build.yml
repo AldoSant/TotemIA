@@ -26,6 +26,16 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
+    - name: Configure Totem API key
+      run: |
+        if [ -n "$TOTEM_API_KEY" ]; then
+          printf 'TOTEM_API_KEY=%s\n' "$TOTEM_API_KEY" >> local.properties
+        else
+          echo "TOTEM_API_KEY not configured; APK will use bundled journey fallback for the home screen."
+        fi
+      env:
+        TOTEM_API_KEY: ${{ secrets.TOTEM_API_KEY || vars.TOTEM_API_KEY }}
+
     - name: Build Debug APK
       run: ./gradlew assembleDebug --no-daemon --stacktrace
       env:
