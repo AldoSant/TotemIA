@@ -9,6 +9,7 @@ import com.totem.ia.domain.model.Chapter
 import com.totem.ia.domain.model.Journey
 import com.totem.ia.domain.repository.JourneyRepository
 import com.totem.ia.tts.TextToSpeechManager
+import com.totem.ia.text.TextSanitizer
 import com.totem.ia.voice.SpeechInputManager
 import com.totem.ia.voice.VoiceInteractionManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -108,7 +109,7 @@ class EpisodeViewModel @Inject constructor(
     }
 
     private fun startEpisode() {
-        val script = _chapter.value?.scriptBase ?: return
+        val script = _chapter.value?.scriptBase?.let(TextSanitizer::forDisplay) ?: return
         _totemState.value = TotemState.SPEAKING
         soundscapeManager.duckVolume()
         voiceInteractionManager.requestAudioFocus()
@@ -117,7 +118,8 @@ class EpisodeViewModel @Inject constructor(
 
     private fun startReflection() {
         _stage.value = EpisodeStage.REFLECTING
-        val firstPrompt = _chapter.value?.reflectionPrompts?.firstOrNull() ?: "O que você achou dessa reflexão?"
+        val firstPrompt = _chapter.value?.reflectionPrompts?.firstOrNull()?.let(TextSanitizer::forDisplay)
+            ?: "O que mais chamou sua atenção neste capítulo? Pode responder por texto ou pelo microfone, e eu aprofundo a conversa com você."
         appendMessage(Message(firstPrompt, isUser = false))
         _totemState.value = TotemState.SPEAKING
         soundscapeManager.duckVolume()
@@ -132,15 +134,29 @@ class EpisodeViewModel @Inject constructor(
         viewModelScope.launch {
             repository.interactWithJourney(journeyId, chapterId, limitedText)
                 .onSuccess { reply ->
-                    appendMessage(Message(reply, isUser = false))
+                    val cleanReply = TextSanitizer.forDisplay(reply)
+                    appendMessage(Message(cleanReply, isUser = false))
                     _totemState.value = TotemState.SPEAKING
                     soundscapeManager.duckVolume()
-                    ttsManager.speak(reply)
+                    ttsManager.speak(cleanReply)
                 }
                 .onFailure {
                     _totemState.value = TotemState.READY
                 }
         }
+    }
+
+    fun sendTextMessage(text: String) {
+        val cleanText = text.trim()
+        if (cleanText.isBlank() || _stage.value == EpisodeStage.LOADING) return
+
+        if (_stage.value == EpisodeStage.PLAYING_INTRO) {
+            ttsManager.stop()
+            soundscapeManager.restoreVolume()
+            _stage.value = EpisodeStage.REFLECTING
+        }
+
+        handleUserReflection(cleanText)
     }
 
     fun toggleListening() {

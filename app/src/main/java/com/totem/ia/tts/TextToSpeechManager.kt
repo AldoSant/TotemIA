@@ -5,6 +5,7 @@ import android.media.AudioAttributes
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.speech.tts.Voice
+import com.totem.ia.text.TextSanitizer
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.Locale
 import javax.inject.Inject
@@ -74,10 +75,12 @@ class TextToSpeechManager @Inject constructor(
 
     fun speak(text: String) {
         if (isInitialized && text.isNotBlank()) {
+            val cleanText = TextSanitizer.forSpeech(text)
+            if (cleanText.isBlank()) return
             val params = Bundle()
             params.putInt(TextToSpeech.Engine.KEY_PARAM_STREAM, android.media.AudioManager.STREAM_MUSIC)
             // Usar o mesmo ID para o listener capturar o onDone
-            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, params, "totem_utterance")
+            tts?.speak(cleanText, TextToSpeech.QUEUE_FLUSH, params, "totem_utterance")
         }
     }
 

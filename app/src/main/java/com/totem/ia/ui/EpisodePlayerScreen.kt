@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -42,6 +43,7 @@ fun EpisodePlayerScreen(
     val isListening = uiState.isListening
     val rmsLevel = uiState.rmsLevel
     val messages = uiState.messages
+    var draftMessage by remember { mutableStateOf("") }
     val connectedDeviceName = uiState.connectedDeviceName
 
     Box(
@@ -98,7 +100,7 @@ fun EpisodePlayerScreen(
 
             // Interaction Area
             AnimatedVisibility(
-                visible = stage == EpisodeStage.REFLECTING,
+                visible = stage == EpisodeStage.PLAYING_INTRO || stage == EpisodeStage.REFLECTING,
                 enter = slideInVertically { it } + fadeIn(),
                 modifier = Modifier.weight(1.2f)
             ) {
@@ -109,20 +111,66 @@ fun EpisodePlayerScreen(
                 ) {
                     Column(Modifier.padding(24.dp)) {
                         Text(
-                            "REFLEXÃO GUIADA",
+                            "DIÁLOGO DO CAPÍTULO",
                             style = MaterialTheme.typography.labelSmall,
                             color = PurpleNeon,
                             letterSpacing = 2.sp
+                        )
+                        Text(
+                            if (stage == EpisodeStage.PLAYING_INTRO) "A introdução está tocando. Você já pode interromper e conversar por texto ou microfone." else "Aprofunde o tema com a IA por texto ou voz.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(0.5f)
                         )
                         
                         LazyColumn(
                             modifier = Modifier.weight(1f).padding(vertical = 16.dp),
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
+                            if (messages.isEmpty()) {
+                                item {
+                                    ReflectionBubble(
+                                        Message(
+                                            "Quando quiser, diga ou escreva sua dúvida, discordância, exemplo real ou pedido de aprofundamento.",
+                                            isUser = false
+                                        )
+                                    )
+                                }
+                            }
                             items(messages) { msg ->
                                 ReflectionBubble(msg)
                             }
                         }
+
+                        OutlinedTextField(
+                            value = draftMessage,
+                            onValueChange = { draftMessage = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = { Text("Escreva para conversar com a IA...", color = Color.White.copy(0.35f)) },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
+                                cursorColor = PurpleNeon,
+                                focusedBorderColor = PurpleNeon,
+                                unfocusedBorderColor = Color.White.copy(0.15f)
+                            ),
+                            trailingIcon = {
+                                IconButton(
+                                    onClick = {
+                                        val textToSend = draftMessage
+                                        draftMessage = ""
+                                        viewModel.sendTextMessage(textToSend)
+                                    },
+                                    enabled = draftMessage.isNotBlank()
+                                ) {
+                                    Icon(Icons.Default.Send, contentDescription = "Enviar", tint = PurpleNeon)
+                                }
+                            },
+                            singleLine = false,
+                            minLines = 1,
+                            maxLines = 4
+                        )
+
+                        Spacer(Modifier.height(12.dp))
 
                         // Actions Area
                         Row(
