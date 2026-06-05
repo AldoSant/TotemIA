@@ -37,14 +37,20 @@ jobs:
         TOTEM_API_KEY: ${{ secrets.TOTEM_API_KEY || vars.TOTEM_API_KEY }}
 
     - name: Build Debug APK
-      run: ./gradlew assembleDebug --no-daemon --stacktrace
+      run: ./gradlew clean assembleDebug --no-daemon --stacktrace
       env:
         GRADLE_OPTS: "-Dorg.gradle.daemon=false -Xmx4g"
+
+    - name: Prepare APK artifact
+      if: success()
+      run: |
+        mkdir -p artifacts
+        cp app/build/outputs/apk/debug/app-debug.apk artifacts/TotemIA-v1.0.1-debug.apk
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
       if: success()
       with:
-        name: TotemIA-debug-apk
-        path: app/build/outputs/apk/debug/app-debug.apk
-        retention-days: 7
+        name: TotemIA-v1.0.1-debug-apk
+        path: artifacts/TotemIA-v1.0.1-debug.apk
+        retention-days: 90
