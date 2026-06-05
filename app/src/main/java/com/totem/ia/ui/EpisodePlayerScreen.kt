@@ -1,5 +1,9 @@
 package com.totem.ia.ui
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -20,9 +24,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 
 private val BgDeep = Color(0xFF020205)
@@ -45,6 +51,14 @@ fun EpisodePlayerScreen(
     val messages = uiState.messages
     var draftMessage by remember { mutableStateOf("") }
     val connectedDeviceName = uiState.connectedDeviceName
+    val context = LocalContext.current
+    var hasMicPermission by remember {
+        mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED)
+    }
+    val micPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        hasMicPermission = granted
+        if (granted) viewModel.toggleListening()
+    }
 
     Box(
         modifier = Modifier
@@ -139,6 +153,11 @@ fun EpisodePlayerScreen(
                             items(messages) { msg ->
                                 ReflectionBubble(msg)
                             }
+                            if (totemState == TotemState.THINKING) {
+                                item {
+                                    ReflectionBubble(Message("Estou pensando na melhor resposta para este capítulo...", isUser = false))
+                                }
+                            }
                         }
 
                         OutlinedTextField(
@@ -185,7 +204,13 @@ fun EpisodePlayerScreen(
                                     .shadow(24.dp, CircleShape, spotColor = totemState.color)
                                     .clip(CircleShape)
                                     .background(if (isListening) RedNeon else PurpleNeon)
-                                    .clickable { viewModel.toggleListening() },
+                                    .clickable {
+                                        if (!hasMicPermission) {
+                                            micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                        } else {
+                                            viewModel.toggleListening()
+                                        }
+                                    },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(

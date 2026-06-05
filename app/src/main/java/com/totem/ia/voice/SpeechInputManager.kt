@@ -3,6 +3,8 @@ package com.totem.ia.voice
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
@@ -20,6 +22,7 @@ class SpeechInputManager @Inject constructor(
 
     private var speechRecognizer: SpeechRecognizer? = null
     private var speechIntent: Intent? = null
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     private val _spokenText = MutableStateFlow("")
     val spokenText: StateFlow<String> = _spokenText.asStateFlow()
@@ -54,21 +57,31 @@ class SpeechInputManager @Inject constructor(
     }
 
     fun startListening() {
-        if (_isListening.value) return
-        ensureRecognizer()
-        _isListening.value = true
-        _spokenText.value = ""
-        speechRecognizer?.startListening(speechIntent)
+        mainHandler.post {
+            if (_isListening.value) return@post
+            if (!SpeechRecognizer.isRecognitionAvailable(context)) {
+                _spokenText.value = "Reconhecimento de voz indisponível neste aparelho."
+                return@post
+            }
+            ensureRecognizer()
+            _isListening.value = true
+            _spokenText.value = ""
+            speechRecognizer?.startListening(speechIntent)
+        }
     }
 
     fun stopListening() {
-        _isListening.value = false
-        speechRecognizer?.stopListening()
+        mainHandler.post {
+            _isListening.value = false
+            speechRecognizer?.stopListening()
+        }
     }
 
     fun cancel() {
-        _isListening.value = false
-        speechRecognizer?.cancel()
+        mainHandler.post {
+            _isListening.value = false
+            speechRecognizer?.cancel()
+        }
     }
 
     override fun onReadyForSpeech(params: Bundle?) {}
@@ -111,7 +124,9 @@ class SpeechInputManager @Inject constructor(
     override fun onEvent(eventType: Int, params: Bundle?) {}
 
     fun destroy() {
-        speechRecognizer?.destroy()
-        speechRecognizer = null
+        mainHandler.post {
+            speechRecognizer?.destroy()
+            speechRecognizer = null
+        }
     }
 }

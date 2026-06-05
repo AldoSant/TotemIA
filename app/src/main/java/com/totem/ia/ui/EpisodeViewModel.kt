@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.totem.ia.audio.SoundscapeManager
 import com.totem.ia.bluetooth.TotemBluetoothManager
+import com.totem.ia.data.SettingsManager
 import com.totem.ia.domain.model.Chapter
 import com.totem.ia.domain.model.Journey
 import com.totem.ia.domain.repository.JourneyRepository
@@ -17,6 +18,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -48,6 +50,7 @@ class EpisodeViewModel @Inject constructor(
     private val hapticManager: HapticManager,
     private val bluetoothManager: TotemBluetoothManager,
     private val soundscapeManager: SoundscapeManager,
+    private val settingsManager: SettingsManager,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -141,9 +144,25 @@ class EpisodeViewModel @Inject constructor(
                     ttsManager.speak(cleanReply)
                 }
                 .onFailure {
-                    _totemState.value = TotemState.READY
+                    val fallbackReply = buildLocalChapterReply(limitedText)
+                    appendMessage(Message(fallbackReply, isUser = false))
+                    _totemState.value = TotemState.SPEAKING
+                    soundscapeManager.duckVolume()
+                    ttsManager.speak(fallbackReply)
                 }
         }
+    }
+
+    private suspend fun buildLocalChapterReply(userText: String): String {
+        val chapter = _chapter.value
+        val systemPrompt = settingsManager.systemPromptFlow.first()
+        val promptHint = systemPrompt.takeIf { it.isNotBlank() }
+            ?: "responder como Totem IA, em português, com tom acolhedor e prático"
+        val chapterTitle = chapter?.title ?: "este capítulo"
+        val nextPrompt = chapter?.reflectionPrompts
+            ?.firstOrNull { prompt -> _messages.value.none { it.text.contains(prompt.take(30), ignoreCase = true) } }
+            ?: "Que situação real da sua vida esse tema te lembra agora?"
+        return "Estou sem resposta online neste momento, então vou seguir no modo local. Sobre $chapterTitle: percebi que você trouxe “${userText.take(180)}”. $promptHint. Para aprofundar, reflita: $nextPrompt"
     }
 
     fun sendTextMessage(text: String) {
